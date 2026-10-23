@@ -29,14 +29,12 @@ import { strings } from '@/lang/create-booking'
 import * as UserService from '@/services/UserService'
 import * as BookingService from '@/services/BookingService'
 import * as helper from '@/utils/helper'
-import SupplierSelectList from '@/components/SupplierSelectList'
-import UserSelectList from '@/components/UserSelectList'
 import LocationSelectList from '@/components/LocationSelectList'
 import CarSelectList from '@/components/CarSelectList'
 import StatusList from '@/components/StatusList'
 import DateTimePicker from '@/components/DateTimePicker'
 import DatePicker from '@/components/DatePicker'
-import { Option, Supplier } from '@/models/common'
+import { Option } from '@/models/common'
 import { schema, FormFields } from '@/models/BookingForm'
 
 import '@/assets/css/create-booking.css'
@@ -44,7 +42,6 @@ import '@/assets/css/create-booking.css'
 const CreateBooking = () => {
   const navigate = useNavigate()
 
-  const [isSupplier, setIsSupplier] = useState(false)
   const [visible, setVisible] = useState(false)
   const [carObj, setCarObj] = useState<bookcarsTypes.Car>()
   const [minDate, setMinDate] = useState<Date>()
@@ -65,6 +62,7 @@ const CreateBooking = () => {
     defaultValues: {
       supplier: undefined,
       driver: undefined,
+      driverName: '',
       pickupLocation: undefined,
       dropOffLocation: undefined,
       car: undefined,
@@ -81,7 +79,6 @@ const CreateBooking = () => {
     }
   })
 
-  const supplier = useWatch({ control, name: 'supplier' })
   const pickupLocation = useWatch({ control, name: 'pickupLocation' })
   const from = useWatch({ control, name: 'from' })
   const to = useWatch({ control, name: 'to' })
@@ -106,9 +103,9 @@ const CreateBooking = () => {
     const additionalDriverSet = helper.carOptionAvailable(carObj, 'additionalDriver') && data.additionalDriver
 
     const booking: bookcarsTypes.Booking = {
-      supplier: data.supplier?._id!,
+      supplier: (carObj.supplier as bookcarsTypes.User)._id || '',
       car: carObj._id,
-      driver: data.driver?._id,
+      driver: '',
       pickupLocation: data.pickupLocation!._id,
       dropOffLocation: data.dropOffLocation!._id,
       from: data.from!,
@@ -149,7 +146,8 @@ const CreateBooking = () => {
       const _booking = await BookingService.create({
         booking,
         additionalDriver: _additionalDriver,
-      })
+        driverName: data.driverName,
+      } as bookcarsTypes.UpsertBookingPayload)
 
       if (_booking && _booking._id) {
         navigate('/')
@@ -164,11 +162,6 @@ const CreateBooking = () => {
   const onLoad = (user?: bookcarsTypes.User) => {
     if (user) {
       setVisible(true)
-
-      if (user.type === bookcarsTypes.RecordType.Supplier) {
-        setValue('supplier', { _id: user._id, name: user.fullName, image: user.avatar } as Supplier)
-        setIsSupplier(true)
-      }
     }
   }
 
@@ -178,23 +171,17 @@ const CreateBooking = () => {
         <Paper className="booking-form booking-form-wrapper" elevation={10} style={visible ? {} : { display: 'none' }}>
           <h1 className="booking-form-title">{strings.NEW_BOOKING_HEADING}</h1>
           <form onSubmit={handleSubmit(onSubmit)}>
-            {!isSupplier && (
-              <FormControl fullWidth margin="dense">
-                <SupplierSelectList
-                  label={blStrings.SUPPLIER}
-                  required
-                  variant="standard"
-                  onChange={(values) => setValue('supplier', values.length > 0 ? values[0] as Option : undefined)}
-                />
-              </FormControl>
-            )}
-
-            <UserSelectList
-              label={blStrings.DRIVER}
-              required
-              variant="standard"
-              onChange={(values) => setValue('driver', values.length > 0 ? values[0] as Option : undefined)}
-            />
+            <FormControl fullWidth margin="dense">
+              <InputLabel className="required">{blStrings.DRIVER}</InputLabel>
+              <Input
+                type="text"
+                {...register('driverName')}
+                required
+                autoComplete="off"
+                error={!!errors.driverName}
+              />
+              {errors.driverName && <FormHelperText error>{errors.driverName.message}</FormHelperText>}
+            </FormControl>
 
             <FormControl fullWidth margin="dense">
               <LocationSelectList
@@ -216,7 +203,6 @@ const CreateBooking = () => {
 
             <CarSelectList
               label={blStrings.CAR}
-              supplier={supplier?._id!}
               pickupLocation={pickupLocation?._id!}
               onChange={(values) => {
                 const _car = values.length > 0 ? values[0] as bookcarsTypes.Car : undefined

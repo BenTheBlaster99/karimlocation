@@ -5,15 +5,12 @@ import {
   InputLabel,
   FormHelperText,
   FormControl,
-  FormControlLabel,
-  Switch,
   Button,
   Paper
 } from '@mui/material'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as bookcarsTypes from ':bookcars-types'
-import * as bookcarsHelper from ':bookcars-helper'
 import Layout from '@/components/Layout'
 import { strings as commonStrings } from '@/lang/common'
 import { strings } from '@/lang/settings'
@@ -35,7 +32,6 @@ const Settings = () => {
   const { user, setUser } = useUserContext() as UserContextType
   const [visible, setVisible] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [enableEmailNotifications, setEnableEmailNotifications] = useState(false)
 
   const { register, control, handleSubmit, formState: { errors, isSubmitting }, clearErrors, setValue } = useForm<FormFields>({
     resolver: zodResolver(schema),
@@ -43,32 +39,6 @@ const Settings = () => {
   })
 
   const birthDate = useWatch({ control, name: 'birthDate' })
-
-  const handleEmailNotificationsChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    try {
-      if (user && user._id) {
-        const _user = bookcarsHelper.clone(user) as bookcarsTypes.User
-        setEnableEmailNotifications(e.target.checked)
-
-        _user.enableEmailNotifications = e.target.checked
-
-        const payload: bookcarsTypes.UpdateEmailNotificationsPayload = {
-          _id: user._id,
-          enableEmailNotifications: _user.enableEmailNotifications
-        }
-        const status = await UserService.updateEmailNotifications(payload)
-
-        if (status === 200) {
-          setUser(_user)
-          helper.info(strings.SETTINGS_UPDATED)
-        }
-      } else {
-        helper.error()
-      }
-    } catch (err) {
-      helper.error(err)
-    }
-  }
 
   const onBeforeUpload = () => {
     setLoading(true)
@@ -115,7 +85,6 @@ const Settings = () => {
       setValue('birthDate', new Date(_user.birthDate!))
       setValue('location', _user.location || '')
       setValue('bio', _user.bio || '')
-      setEnableEmailNotifications(_user.enableEmailNotifications ?? true)
       setVisible(true)
       setLoading(false)
     }
@@ -221,13 +190,6 @@ const Settings = () => {
             <Paper className="settings-form settings-form-wrapper" elevation={10}>
               <h1 className="settings-form-title">{commonStrings.DRIVER_LICENSE}</h1>
               <DriverLicense user={user} />
-            </Paper>
-
-            <Paper className="settings-net settings-net-wrapper" elevation={10}>
-              <h1 className="settings-form-title">{strings.NETWORK_SETTINGS}</h1>
-              <FormControl component="fieldset">
-                <FormControlLabel control={<Switch checked={enableEmailNotifications} onChange={handleEmailNotificationsChange} />} label={strings.SETTINGS_EMAIL_NOTIFICATIONS} />
-              </FormControl>
             </Paper>
 
           </div>

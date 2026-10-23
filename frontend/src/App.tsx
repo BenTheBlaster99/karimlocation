@@ -29,11 +29,8 @@ const Bookings = lazy(() => import('@/pages/Bookings'))
 const Booking = lazy(() => import('@/pages/Booking'))
 const Settings = lazy(() => import('@/pages/Settings'))
 const Notifications = lazy(() => import('@/pages/Notifications'))
-const ToS = lazy(() => import('@/pages/ToS'))
 const Privacy = lazy(() => import('@/pages/Privacy'))
-const About = lazy(() => import('@/pages/About'))
 const ChangePassword = lazy(() => import('@/pages/ChangePassword'))
-const Contact = lazy(() => import('@/pages/Contact'))
 const NoMatch = lazy(() => import('@/pages/NoMatch'))
 const Locations = lazy(() => import('@/pages/Locations'))
 const Suppliers = lazy(() => import('@/pages/Suppliers'))
@@ -90,10 +87,7 @@ const router = createBrowserRouter([
       { path: 'settings', element: <Settings /> },
       { path: 'notifications', element: <Notifications /> },
       { path: 'change-password', element: <ChangePassword /> },
-      { path: 'about', element: <About /> },
-      { path: 'tos', element: <ToS /> },
       { path: 'privacy', element: <Privacy /> },
-      { path: 'contact', element: <Contact /> },
       { path: 'locations', element: <Locations /> },
       { path: 'faq', element: <Faq /> },
       { path: 'cookie-policy', element: <CookiePolicy /> },

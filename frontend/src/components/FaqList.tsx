@@ -25,10 +25,6 @@ const Faq = () => {
           <AccordionSummary expandIcon={<ExpandMore />}><Typography component="span" className="accordion-title">{strings.FAQ_AGE_TITLE}</Typography></AccordionSummary>
           <AccordionDetails className="accordion-details">{strings.FAQ_AGE_TEXT}</AccordionDetails>
         </Accordion>
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMore />}><Typography component="span" className="accordion-title">{strings.FAQ_CANCEL_TITLE}</Typography></AccordionSummary>
-          <AccordionDetails className="accordion-details">{strings.FAQ_CANCEL_TEXT}</AccordionDetails>
-        </Accordion>
       </div>
       <Button
         variant="contained"

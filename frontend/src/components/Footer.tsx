@@ -3,21 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { IconButton } from '@mui/material'
 import {
   MailOutline,
-  FacebookTwoTone as FacebookIcon,
-  X,
-  LinkedIn,
   Instagram,
+  WhatsApp,
 } from '@mui/icons-material'
-import * as bookcarsTypes from ':bookcars-types'
 import { strings } from '@/lang/footer'
-import NewsletterForm from '@/components/NewsletterForm'
 import env from '@/config/env.config'
 
-import Stripe from '@/assets/img/stripe.png'
-import PayPal from '@/assets/img/paypal.png'
 import '@/assets/css/footer.css'
-
-const SecurePayment = env.PAYMENT_GATEWAY === bookcarsTypes.PaymentGateway.Stripe ? Stripe : PayPal
 
 const Footer = () => {
   const navigate = useNavigate()
@@ -26,15 +18,6 @@ const Footer = () => {
     <div className="footer">
       <div className="header">{env.WEBSITE_NAME}</div>
       <section className="main">
-        <div className="main-section">
-          <div className="title">{strings.CORPORATE}</div>
-          <ul className="links">
-            <li onClick={() => navigate('/about')}>{strings.ABOUT}</li>
-            <li onClick={() => navigate('/cookie-policy')}>{strings.COOKIE_POLICY}</li>
-            <li onClick={() => navigate('/privacy')}>{strings.PRIVACY_POLICY}</li>
-            <li onClick={() => navigate('/tos')}>{strings.TOS}</li>
-          </ul>
-        </div>
         <div className="main-section">
           <div className="title">{strings.RENT}</div>
           <ul className="links">
@@ -45,7 +28,6 @@ const Footer = () => {
         <div className="main-section">
           <div className="title">{strings.SUPPORT}</div>
           <ul className="links">
-            <li onClick={() => navigate('/contact')}>{strings.CONTACT}</li>
             <li onClick={() => navigate('/faq')}>{strings.FAQ}</li>
           </ul>
           <div className="footer-contact">
@@ -53,33 +35,14 @@ const Footer = () => {
             <a href={`mailto:${env.CONTACT_EMAIL}`}>{env.CONTACT_EMAIL}</a>
           </div>
           <div className="footer-contact">
-            <IconButton href="https://www.facebook.com/" target="_blank" aria-label="Facebook" className="social-icon"><FacebookIcon /></IconButton>
-            <IconButton href="https://x.com/" target="_blank" aria-label="X" className="social-icon"><X /></IconButton>
-            <IconButton href="https://www.linkedin.com/" target="_blank" aria-label="LinkedIn" className="social-icon"><LinkedIn /></IconButton>
-            <IconButton href="https://www.instagram.com/" target="_blank" aria-label="Instagram" className="social-icon"><Instagram /></IconButton>
+            <IconButton href="https://wa.me/213770730344" target="_blank" aria-label="WhatsApp" className="social-icon"><WhatsApp /></IconButton>
+            <IconButton href="https://www.instagram.com/carkarimauto" target="_blank" aria-label="Instagram" className="social-icon"><Instagram /></IconButton>
+            <IconButton href="https://www.tiktok.com/@karim_autocar" target="_blank" aria-label="TikTok" className="social-icon">
+              <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+                <path fill="currentColor" d="M14.5 3c.4 2.4 1.8 4.1 4.2 4.4v2.5c-1.4 0-2.7-.4-3.9-1.2v6.6c0 3.4-2.6 6.2-6.1 6.2S2.6 18.7 2.6 15.3c0-3.3 2.5-6 5.8-6.2v2.6c-1.5.2-2.6 1.5-2.6 3.1 0 1.7 1.4 3.1 3.1 3.1s3.1-1.4 3.1-3.1V3h2.5z" />
+              </svg>
+            </IconButton>
           </div>
-          <div className="newsletter">
-            <NewsletterForm />
-          </div>
-        </div>
-      </section>
-      <section className="payment">
-        <div
-          className="payment-text"
-          style={{ margin: env.PAYMENT_GATEWAY === bookcarsTypes.PaymentGateway.PayPal ? '0 20px' : '-25px 10px 0 0' }}
-        >
-          {strings.SECURE_PAYMENT}
-        </div>
-        <img
-          src={SecurePayment}
-          alt=""
-          style={{ height: env.PAYMENT_GATEWAY === bookcarsTypes.PaymentGateway.PayPal ? 64 : 'auto' }}
-        />
-      </section>
-      <section className="copyright">
-        <div className="copyright">
-          <span>{strings.COPYRIGHT_PART1}</span>
-          <span>{strings.COPYRIGHT_PART2}</span>
         </div>
       </section>
     </div>

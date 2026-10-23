@@ -20,5 +20,8 @@ routes.route(routeNames.getCar).get(carController.getCar)
 routes.route(routeNames.getCars).post(authJwt.verifyToken, authJwt.authSupplier, carController.getCars)
 routes.route(routeNames.getBookingCars).post(authJwt.verifyToken, authJwt.authSupplier, carController.getBookingCars)
 routes.route(routeNames.getFrontendCars).post(carController.getFrontendCars)
+routes.route(routeNames.getHomeCars).get(carController.getHomeCars)
+routes.route(routeNames.getMaintenance).get(authJwt.verifyToken, authJwt.authSupplier, carController.getMaintenance)
+routes.route(routeNames.updateMaintenance).put(authJwt.verifyToken, authJwt.authSupplier, carController.updateMaintenance)
 
 export default routes

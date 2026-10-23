@@ -23,6 +23,7 @@ L.Marker.prototype.options.icon = DefaultIcon
 interface Marker {
   name: string,
   position: L.LatLng
+  mapUrl?: string
 }
 
 const markers: Marker[] = [
@@ -119,7 +120,11 @@ const Map = ({
     (locations
       && locations
         .filter((l) => l.latitude && l.longitude)
-        .map((l) => ({ name: l.name!, position: new L.LatLng(l.latitude!, l.longitude!) }))
+        .map((l) => ({
+          name: l.name!,
+          position: new L.LatLng(l.latitude!, l.longitude!),
+          mapUrl: l.mapUrl || `https://www.google.com/maps?q=${l.latitude},${l.longitude}`,
+        }))
     ) || []
   )
 
@@ -129,6 +134,11 @@ const Map = ({
         <Popup className="marker">
           <div className="name">{marker.name}</div>
           <div className="action">
+            {marker.mapUrl && (
+              <a className="action-btn" href={marker.mapUrl} target="_blank" rel="noopener noreferrer">
+                {strings.OPEN_IN_GOOGLE_MAPS}
+              </a>
+            )}
             {!!onSelelectPickUpLocation && (
               <button
                 type="button"

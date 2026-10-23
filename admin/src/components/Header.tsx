@@ -17,23 +17,19 @@ import {
 } from '@mui/material'
 import {
   Menu as MenuIcon,
-  Mail as MailIcon,
   Notifications as NotificationsIcon,
   More as MoreIcon,
   Language as LanguageIcon,
   Settings as SettingsIcon,
   Dashboard as DashboardIcon,
-  CorporateFare as SuppliersIcon,
   LocationOn as LocationsIcon,
   DirectionsCar as CarsIcon,
   People as UsersIcon,
-  InfoTwoTone as AboutIcon,
-  DescriptionTwoTone as TosIcon,
   ExitToApp as SignoutIcon,
   Flag as CountriesIcon,
   CalendarMonth as SchedulerIcon,
-  AccountBalance as BankDetailsIcon,
-  MonetizationOn as PricingIcon,
+  Build as MaintenanceIcon,
+  QueryStats as StatisticsIcon,
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import * as bookcarsTypes from ':bookcars-types'
@@ -41,7 +37,6 @@ import env from '@/config/env.config'
 import { strings } from '@/lang/header'
 import { strings as commonStrings } from '@/lang/common'
 import * as UserService from '@/services/UserService'
-import * as BankDetailsService from '@/services/BankDetailsService'
 import Avatar from './Avatar'
 import * as langHelper from '@/utils/langHelper'
 import * as helper from '@/utils/helper'
@@ -70,7 +65,6 @@ const Header = ({
   const [sideAnchorEl, setSideAnchorEl] = useState<HTMLElement | null>(null)
   const [isSignedIn, setIsSignedIn] = useState(false)
   const [isLoaded, setIsLoaded] = useState(false)
-  const [bankDetails, setBankDetails] = useState<bookcarsTypes.BankDetails | null>(null)
 
   const isMenuOpen = Boolean(anchorEl)
   const isMobileMenuOpen = Boolean(mobileMoreAnchorEl)
@@ -206,9 +200,6 @@ const Header = ({
     const init = async () => {
       if (!hidden) {
         if (currentUser) {
-          const _bankDetails = await BankDetailsService.getBankDetails()
-          setBankDetails(_bankDetails)
-
           setIsSignedIn(true)
           setIsLoaded(true)
         }
@@ -313,21 +304,21 @@ const Header = ({
                 </ListItem>
                 <ListItem
                   onClick={() => {
+                    navigate('/statistics')
+                    handleSideMenuClose()
+                  }}
+                >
+                  <ListItemIcon><StatisticsIcon /></ListItemIcon>
+                  <ListItemText primary={strings.STATISTICS} />
+                </ListItem>
+                <ListItem
+                  onClick={() => {
                     navigate('/scheduler')
                     handleSideMenuClose()
                   }}
                 >
                   <ListItemIcon><SchedulerIcon /></ListItemIcon>
                   <ListItemText primary={strings.SCHEDULER} />
-                </ListItem>
-                <ListItem
-                  onClick={() => {
-                    navigate('/suppliers')
-                    handleSideMenuClose()
-                  }}
-                >
-                  <ListItemIcon><SuppliersIcon /></ListItemIcon>
-                  <ListItemText primary={strings.COMPANIES} />
                 </ListItem>
                 <ListItem
                   onClick={() => {
@@ -358,6 +349,15 @@ const Header = ({
                 </ListItem>
                 <ListItem
                   onClick={() => {
+                    navigate('/maintenance')
+                    handleSideMenuClose()
+                  }}
+                >
+                  <ListItemIcon><MaintenanceIcon /></ListItemIcon>
+                  <ListItemText primary={strings.MAINTENANCE} />
+                </ListItem>
+                <ListItem
+                  onClick={() => {
                     navigate('/users')
                     handleSideMenuClose()
                   }}
@@ -365,26 +365,6 @@ const Header = ({
                   <ListItemIcon><UsersIcon /></ListItemIcon>
                   <ListItemText primary={strings.USERS} />
                 </ListItem>
-                <ListItem
-                  onClick={() => {
-                    navigate('/pricing')
-                    handleSideMenuClose()
-                  }}
-                >
-                  <ListItemIcon><PricingIcon /></ListItemIcon>
-                  <ListItemText primary={strings.PRICING} />
-                </ListItem>
-                {bankDetails?.showBankDetailsPage && (
-                  <ListItem
-                    onClick={() => {
-                      navigate('/bank-details')
-                      handleSideMenuClose()
-                    }}
-                  >
-                    <ListItemIcon><BankDetailsIcon /></ListItemIcon>
-                    <ListItemText primary={strings.BANK_DETAILS} />
-                  </ListItem>
-                )}
                 <ListItem
                   onClick={() => {
                     navigate('/settings')
@@ -395,33 +375,6 @@ const Header = ({
                   <ListItemText primary={strings.SETTINGS} />
                 </ListItem>
               </List>
-              <ListItem
-                onClick={() => {
-                  navigate('/about')
-                  handleSideMenuClose()
-                }}
-              >
-                <ListItemIcon><AboutIcon /></ListItemIcon>
-                <ListItemText primary={strings.ABOUT} />
-              </ListItem>
-              <ListItem
-                onClick={() => {
-                  navigate('/tos')
-                  handleSideMenuClose()
-                }}
-              >
-                <ListItemIcon><TosIcon /></ListItemIcon>
-                <ListItemText primary={strings.TOS} />
-              </ListItem>
-              <ListItem
-                onClick={() => {
-                  navigate('/contact')
-                  handleSideMenuClose()
-                }}
-              >
-                <ListItemIcon><MailIcon /></ListItemIcon>
-                <ListItemText primary={strings.CONTACT} />
-              </ListItem>
             </Drawer>
           </>
           <div style={classes.grow} />

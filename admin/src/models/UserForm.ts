@@ -8,6 +8,8 @@ import env from '@/config/env.config'
 export const schema = z.object({
   fullName: z.string(),
   email: z.string().email({ message: commonStrings.EMAIL_NOT_VALID }),
+  username: z.string().optional(),
+  password: z.string().optional(),
   phone: z.string().refine((val) => !val || validator.isMobilePhone(val), { message: commonStrings.PHONE_NOT_VALID }).optional(),
   location: z.string().optional(),
   bio: z.string().optional(),

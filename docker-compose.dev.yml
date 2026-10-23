@@ -6,6 +6,8 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: admin
+      # Kernel 6.19+ / 7.x refuses MongoDB 8 unless glibc rseq stays enabled.
+      GLIBC_TUNABLES: glibc.pthread.rseq=1
     ports:
       - 27018:27017
     volumes:
@@ -37,6 +39,7 @@ services:
     volumes:
       - cdn:/var/www/cdn/bookcars
       - ./backend:/bookcars/backend
+      - ./packages/bookcars-types/index.ts:/bookcars/packages/bookcars-types/index.ts
       - /bookcars/backend/node_modules
       - backend_logs:/bookcars/backend/logs
 

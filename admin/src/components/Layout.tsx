@@ -1,10 +1,7 @@
 import React, { useState, useEffect, CSSProperties, ReactNode } from 'react'
-import { Button } from '@mui/material'
 import * as bookcarsTypes from ':bookcars-types'
-import { strings } from '@/lang/master'
 import * as UserService from '@/services/UserService'
 import Unauthorized from './Unauthorized'
-import * as helper from '@/utils/helper'
 import { useUserContext, UserContextType } from '@/context/UserContext'
 
 interface LayoutProps {
@@ -46,42 +43,12 @@ const Layout = ({
     }
   }, [user, admin]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleResend = async (e: React.MouseEvent<HTMLElement>) => {
-    e.preventDefault()
-
-    try {
-      if (user) {
-        const data = { email: user.email }
-
-        const status = await UserService.resendLink(data)
-        if (status === 200) {
-          helper.info(strings.VALIDATION_EMAIL_SENT)
-        } else {
-          helper.error(null, strings.VALIDATION_EMAIL_ERROR)
-        }
-      } else {
-        helper.error()
-      }
-    } catch (err) {
-      helper.error(err, strings.VALIDATION_EMAIL_ERROR)
-    }
-  }
-
   return (
     <>
-      {((!user && !loading) || (user && user.verified) || !strict) && !unauthorized ? (
+      {(!!user || !loading || !strict) && !unauthorized && (
         <div className="content" style={style || {}}>
           {userLoaded && children}
         </div>
-      ) : (
-        !loading && !unauthorized && (
-          <div className="validate-email">
-            <span>{strings.VALIDATE_EMAIL}</span>
-            <Button type="button" variant="contained" size="small" className="btn-primary btn-resend" onClick={handleResend}>
-              {strings.RESEND}
-            </Button>
-          </div>
-        )
       )}
       {unauthorized && <Unauthorized />}
     </>

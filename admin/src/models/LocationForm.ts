@@ -22,8 +22,7 @@ export type ParkingSpot = z.infer<typeof parkingSpotSchema>
 export const schema = z.object({
   country: optionSchema.optional(),
   names: z.array(locationNameSchema),
-  latitude: z.string().optional(),
-  longitude: z.string().optional(),
+  mapUrl: z.string().optional(),
   image: z.string().optional(),
   parkingSpots: z.array(parkingSpotSchema).optional(),
   parentLocation: optionSchema.optional(),

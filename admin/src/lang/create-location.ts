@@ -10,6 +10,8 @@ const strings = new LocalizedStrings({
     COUNTRY: 'Pays',
     PARKING_SPOTS: 'Places de parking',
     PARENT_LOCATION: 'Lieu Parent',
+    MAP_LINK: 'Lien Google Maps',
+    INVALID_MAP_LINK: 'Collez un lien Google Maps qui ouvre le lieu.',
   },
   en: {
     NEW_LOCATION_HEADING: 'New location',
@@ -19,6 +21,8 @@ const strings = new LocalizedStrings({
     COUNTRY: 'Country',
     PARKING_SPOTS: 'Parking spots',
     PARENT_LOCATION: 'Parent Location',
+    MAP_LINK: 'Google Maps link',
+    INVALID_MAP_LINK: 'Paste a Google Maps link that opens the location.',
   },
   es: {
     NEW_LOCATION_HEADING: 'Nuevo lugar',
@@ -28,6 +32,8 @@ const strings = new LocalizedStrings({
     COUNTRY: 'País',
     PARKING_SPOTS: 'Plazas de aparcamiento',
     PARENT_LOCATION: 'Ubicación de los Padres',
+    MAP_LINK: 'Enlace de Google Maps',
+    INVALID_MAP_LINK: 'Pega un enlace de Google Maps que abra el lugar.',
   },
 })
 

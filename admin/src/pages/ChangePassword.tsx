@@ -101,6 +101,7 @@ const ChangePassword = () => {
       const status = await UserService.hasPassword(_userId!)
       const __hasPassword = status === 200
       setStrict(__hasPassword
+        && __user?._id === _loggedUser._id
         && (
           (__user?.type === bookcarsTypes.UserType.Admin && _loggedUser.type === bookcarsTypes.UserType.Admin)
           || (__user?.type === bookcarsTypes.UserType.Supplier && _loggedUser.type === bookcarsTypes.UserType.Supplier)

@@ -33,17 +33,14 @@ const CreateUser = lazy(() => import('@/pages/CreateUser'))
 const UpdateUser = lazy(() => import('@/pages/UpdateUser'))
 const Settings = lazy(() => import('@/pages/Settings'))
 const Notifications = lazy(() => import('@/pages/Notifications'))
-const ToS = lazy(() => import('@/pages/ToS'))
-const About = lazy(() => import('@/pages/About'))
 const ChangePassword = lazy(() => import('@/pages/ChangePassword'))
-const Contact = lazy(() => import('@/pages/Contact'))
 const NoMatch = lazy(() => import('@/pages/NoMatch'))
 const Countries = lazy(() => import('@/pages/Countries'))
 const CreateCountry = lazy(() => import('@/pages/CreateCountry'))
 const UpdateCountry = lazy(() => import('@/pages/UpdateCountry'))
 const Scheduler = lazy(() => import('@/pages/Scheduler'))
-const BankDetails = lazy(() => import('@/pages/BankDetails'))
-const Pricing = lazy(() => import('@/pages/Pricing'))
+const Maintenance = lazy(() => import('@/pages/Maintenance'))
+const Statistics = lazy(() => import('@/pages/Statistics'))
 
 const AppLayout = () => {
   const location = useLocation()
@@ -103,15 +100,12 @@ const router = createBrowserRouter([
       { path: 'settings', element: <Settings /> },
       { path: 'notifications', element: <Notifications /> },
       { path: 'change-password', element: <ChangePassword /> },
-      { path: 'about', element: <About /> },
-      { path: 'tos', element: <ToS /> },
-      { path: 'contact', element: <Contact /> },
       { path: 'countries', element: <Countries /> },
       { path: 'create-country', element: <CreateCountry /> },
       { path: 'update-country', element: <UpdateCountry /> },
       { path: 'scheduler', element: <Scheduler /> },
-      { path: 'bank-details', element: <BankDetails /> },
-      { path: 'pricing', element: <Pricing /> },
+      { path: 'maintenance', element: <Maintenance /> },
+      { path: 'statistics', element: <Statistics /> },
       { path: '*', element: <NoMatch /> }
     ]
   }

@@ -252,40 +252,12 @@ const CarFilter = ({
 
   return (
     <Accordion
-      title={commonStrings.LOCATION_TERM}
+      title={`${strings.PICK_UP_DATE} / ${strings.DROP_OFF_DATE}`}
       collapse={collapse}
       offsetHeight={offsetHeight}
       className={`${className ? `${className} ` : ''}car-filter`}
     >
       <form onSubmit={handleSubmit(onSubmitForm)}>
-        <FormControl fullWidth className="pickup-location">
-          <LocationSelectList
-            {...register('pickupLocation')}
-            label={commonStrings.PICK_UP_LOCATION}
-            hidePopupIcon
-            customOpen={env.isMobile}
-            init={!env.isMobile}
-            required
-            variant="standard"
-            value={pickupLocation as bookcarsTypes.Location}
-            onChange={handlePickupLocationChange}
-          />
-        </FormControl>
-        {!sameLocation && (
-          <FormControl fullWidth className="drop-off-location">
-            <LocationSelectList
-              {...register('dropOffLocation')}
-              label={commonStrings.DROP_OFF_LOCATION}
-              value={dropOffLocation as bookcarsTypes.Location}
-              hidePopupIcon
-              customOpen={env.isMobile}
-              init={!env.isMobile}
-              required
-              variant="standard"
-              onChange={handleDropOffLocationChange}
-            />
-          </FormControl>
-        )}
         <FormControl fullWidth className="from">
           <Controller
             name="from"
@@ -335,16 +307,6 @@ const CarFilter = ({
           <Button type="submit" variant="contained" className="btn-primary btn-search" disabled={isSubmitting}>
             {commonStrings.SEARCH}
           </Button>
-        </FormControl>
-        <FormControl fullWidth className="chk-same-location">
-          <FormControlLabel
-            control={<Checkbox
-              {...register('sameLocation')}
-              checked={sameLocation}
-              onChange={handleSameLocationChange}
-            />}
-            label={strings.DROP_OFF}
-          />
         </FormControl>
       </form>
     </Accordion>

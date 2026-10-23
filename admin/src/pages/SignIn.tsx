@@ -129,7 +129,7 @@ const SignIn = () => {
             <form onSubmit={handleSubmit(onSubmit)}>
               <h1 className="signin-form-title">{strings.SIGN_IN_HEADING}</h1>
               <FormControl fullWidth margin="dense" error={!!errors.email}>
-                <InputLabel htmlFor="email">{commonStrings.EMAIL}</InputLabel>
+                <InputLabel htmlFor="email">{strings.USERNAME}</InputLabel>
                 <Input
                   {...register('email')}
                   onChange={(e) => {
@@ -139,7 +139,7 @@ const SignIn = () => {
                     // Without the next line, if the field is auto-filled by the browser, react-form does not know it
                     setValue('email', e.target.value)
                   }}
-                  autoComplete="email"
+                  autoComplete="username"
                   required
                 />
                 <FormHelperText error={!!errors.email}>{errors.email?.message || ''}</FormHelperText>

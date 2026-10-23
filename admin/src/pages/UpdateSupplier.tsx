@@ -16,11 +16,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import * as bookcarsTypes from ':bookcars-types'
 import * as bookcarsHelper from ':bookcars-helper'
 import Layout from '@/components/Layout'
-import env from '@/config/env.config'
 import { strings as commonStrings } from '@/lang/common'
 import { strings as csStrings } from '@/lang/create-supplier'
 import * as SupplierService from '@/services/SupplierService'
-import * as UserService from '@/services/UserService'
 import * as helper from '@/utils/helper'
 import Error from '@/components/Error'
 import Backdrop from '@/components/SimpleBackdrop'
@@ -103,24 +101,8 @@ const UpdateSupplier = () => {
     }
   }
 
-  const handleResendActivationLink = async () => {
-    if (supplier) {
-      try {
-        const status = await UserService.resend(supplier.email, false, env.APP_TYPE)
-
-        if (status === 200) {
-          helper.info(commonStrings.ACTIVATION_EMAIL_SENT)
-        } else {
-          helper.error()
-        }
-      } catch (err) {
-        helper.error(err)
-      }
-    }
-  }
-
   const onLoad = async (_user?: bookcarsTypes.User) => {
-    if (_user && _user.verified) {
+    if (_user) {
       setLoading(true)
       setUser(_user)
 
@@ -232,8 +214,6 @@ const UpdateSupplier = () => {
       setFocus(firstErrorField)
     }
   }
-
-  const admin = helper.admin(user)
 
   return (
     <Layout onLoad={onLoad} strict>
@@ -449,16 +429,6 @@ const UpdateSupplier = () => {
                 <ContractList supplier={supplier} />
               </FormControl>
 
-              {admin && (
-                <FormControl fullWidth margin="dense" className="resend-activation-link">
-                  <Button
-                    variant="outlined"
-                    onClick={handleResendActivationLink}
-                  >
-                    {commonStrings.RESEND_ACTIVATION_LINK}
-                  </Button>
-                </FormControl>
-              )}
               <div className="buttons">
                 <Button variant="contained" className="btn-primary btn-margin btn-margin-bottom" size="small" onClick={() => navigate(`/change-password?u=${supplier && supplier._id}`)}>
                   {commonStrings.RESET_PASSWORD}

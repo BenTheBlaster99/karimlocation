@@ -12,6 +12,9 @@ const routes = {
   getCars: '/api/cars/:page/:size',
   getBookingCars: '/api/booking-cars/:page/:size',
   getFrontendCars: '/api/frontend-cars/:page/:size',
+  getHomeCars: '/api/home-cars',
+  getMaintenance: '/api/car-maintenance',
+  updateMaintenance: '/api/update-car-maintenance',
   checkCar: '/api/check-car/:id',
 }
 

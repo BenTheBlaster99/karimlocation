@@ -58,7 +58,8 @@ import DriverLicense from '@/components/DriverLicense'
 import Progress from '@/components/Progress'
 import CheckoutStatus from '@/components/CheckoutStatus'
 import NoMatch from './NoMatch'
-import CheckoutOptions from '@/components/CheckoutOptions'
+import DateTimePicker from '@/components/DateTimePicker'
+import { strings as searchStrings } from '@/lang/search-form'
 import Footer from '@/components/Footer'
 import ViewOnMapButton from '@/components/ViewOnMapButton'
 import MapDialog from '@/components/MapDialog'
@@ -123,6 +124,15 @@ const Checkout = () => {
   const days = bookcarsHelper.days(from, to)
   const daysLabel = from && to && `${helper.getDaysShort(days)} (${bookcarsHelper.capitalize(format(from, _format, { locale: _locale }))} - ${bookcarsHelper.capitalize(format(to, _format, { locale: _locale }))})`
 
+  const refreshPrice = async (start: Date, end: Date) => {
+    if (!car) {
+      return
+    }
+    const priceChangeRate = car.supplier.priceChangeRate || 0
+    const nextPrice = await PaymentService.convertPrice(bookcarsHelper.calculateTotalPrice(car, start, end, priceChangeRate))
+    setPrice(nextPrice)
+  }
+
   const schema = createSchema(car)
 
   const {
@@ -141,6 +151,7 @@ const Checkout = () => {
     defaultValues: {
       additionalDriverEmail: '',
       additionalDriverPhone: '',
+      payLater: true,
     }
   })
 
@@ -180,19 +191,6 @@ const Checkout = () => {
         return
       }
 
-      if (!authenticated) {
-        // check email
-        const status = await UserService.validateEmail({ email: data.email! })
-        if (status === 200) {
-          setEmailRegistered(false)
-          setEmailInfo(true)
-        } else {
-          setEmailRegistered(true)
-          setEmailInfo(false)
-          return
-        }
-      }
-
       if (car.supplier.licenseRequired && !license) {
         setLicenseRequired(true)
         return
@@ -205,7 +203,7 @@ const Checkout = () => {
 
       if (!authenticated) {
         driver = {
-          email: data.email,
+          email: `client.${Date.now()}@example.com`,
           phone: data.phone,
           fullName: data.fullName!,
           birthDate: data.birthDate,
@@ -214,14 +212,7 @@ const Checkout = () => {
         }
       }
 
-      let amount = price
-      if (payDeposit) {
-        amount = depositPrice
-      } else if (payInFull) {
-        amount = price + depositPrice
-      }
-
-      const basePrice = await bookcarsHelper.convertPrice(amount, PaymentService.getCurrency(), env.BASE_CURRENCY)
+      const basePrice = await bookcarsHelper.convertPrice(price, PaymentService.getCurrency(), env.BASE_CURRENCY)
 
       const booking: bookcarsTypes.Booking = {
         supplier: car.supplier._id as string,
@@ -250,64 +241,22 @@ const Checkout = () => {
         }
       }
 
-      //
-      // Stripe Payment Gateway
-      //
-      let _customerId: string | undefined
-      let _sessionId: string | undefined
-      if (!payLater) {
-        if (env.PAYMENT_GATEWAY === bookcarsTypes.PaymentGateway.Stripe) {
-          const name = bookcarsHelper.truncateString(`${env.WEBSITE_NAME} - ${car.name}`, StripeService.ORDER_NAME_MAX_LENGTH)
-          const _description = `${env.WEBSITE_NAME} - ${car.name} - ${daysLabel} - ${pickupLocation._id === dropOffLocation._id ? pickupLocation.name : `${pickupLocation.name} - ${dropOffLocation.name}`}`
-          const description = bookcarsHelper.truncateString(_description, StripeService.ORDER_DESCRIPTION_MAX_LENGTH)
-
-          let finalPrice = price
-          if (payDeposit) {
-            finalPrice = depositPrice
-          } else if (payInFull) {
-            finalPrice = price + depositPrice
-          }
-
-          const payload: bookcarsTypes.CreatePaymentPayload = {
-            amount: finalPrice,
-            currency: PaymentService.getCurrency(),
-            locale: language,
-            receiptEmail: (!authenticated ? driver?.email : user?.email) as string,
-            name,
-            description,
-            customerName: (!authenticated ? driver?.fullName : user?.fullName) as string,
-          }
-          const res = await StripeService.createCheckoutSession(payload)
-          setClientSecret(res.clientSecret)
-          _sessionId = res.sessionId
-          _customerId = res.customerId
-        } else {
-          setPayPalLoaded(true)
-        }
-      }
-
-      booking.isDeposit = payDeposit
-      booking.isPayedInFull = payInFull
+      booking.isDeposit = false
+      booking.isPayedInFull = false
 
       const payload: bookcarsTypes.CheckoutPayload = {
         driver,
         booking,
         additionalDriver: _additionalDriver,
-        payLater: !!data.payLater,
-        sessionId: _sessionId,
-        customerId: _customerId,
-        payPal: env.PAYMENT_GATEWAY === bookcarsTypes.PaymentGateway.PayPal,
+        payLater: true,
       }
 
       const { status, bookingId: _bookingId } = await BookingService.checkout(payload)
 
       if (status === 200) {
-        if (payLater) {
-          setVisible(false)
-          setSuccess(true)
-        }
+        setVisible(false)
+        setSuccess(true)
         setBookingId(_bookingId)
-        setSessionId(_sessionId)
       } else {
         helper.error()
       }
@@ -454,22 +403,18 @@ const Checkout = () => {
                       hideSupplier={env.HIDE_SUPPLIERS}
                     />
 
-                    <CheckoutOptions
-                      car={car}
-                      from={from}
-                      to={to}
-                      language={language}
-                      clientSecret={clientSecret}
-                      payPalLoaded={payPalLoaded}
-                      onPriceChange={(value) => setPrice(value)}
-                      onAdManuallyCheckedChange={(value) => setAdManuallyChecked(value)}
-                      onCancellationChange={(value) => setValue('cancellation', value)}
-                      onAmendmentsChange={(value) => setValue('amendments', value)}
-                      onTheftProtectionChange={(value) => setValue('theftProtection', value)}
-                      onCollisionDamageWaiverChange={(value) => setValue('collisionDamageWaiver', value)}
-                      onFullInsuranceChange={(value) => setValue('fullInsurance', value)}
-                      onAdditionalDriverChange={(value) => setValue('additionalDriver', value)}
-                    />
+                    <div className="checkout-details-container">
+                      <div className="checkout-info">
+                        <CarIcon />
+                        <span>{strings.BOOKING_OPTIONS}</span>
+                      </div>
+                      <div className="checkout-details">
+                        <div className="checkout-detail">
+                          <span className="checkout-detail-title">{strings.AIRPORT_DELIVERY}</span>
+                          <div className="checkout-detail-value">{strings.AIRPORT_DELIVERY_FREE}</div>
+                        </div>
+                      </div>
+                    </div>
 
                     <div className="checkout-details-container">
                       <div className="checkout-info">
@@ -477,10 +422,36 @@ const Checkout = () => {
                         <span>{strings.BOOKING_DETAILS}</span>
                       </div>
                       <div className="checkout-details">
-                        <div className="checkout-detail" style={{ height: bookingDetailHeight }}>
+                        <div className="checkout-detail">
                           <span className="checkout-detail-title">{strings.DAYS}</span>
                           <div className="checkout-detail-value">
-                            {daysLabel}
+                            <DateTimePicker
+                              label={searchStrings.PICK_UP_DATE}
+                              value={from}
+                              variant="standard"
+                              language={language}
+                              onChange={(date) => {
+                                if (!date || !to) {
+                                  return
+                                }
+                                setFrom(date)
+                                void refreshPrice(date, to)
+                              }}
+                            />
+                            <DateTimePicker
+                              label={searchStrings.DROP_OFF_DATE}
+                              value={to}
+                              variant="standard"
+                              language={language}
+                              onChange={(date) => {
+                                if (!date || !from) {
+                                  return
+                                }
+                                setTo(date)
+                                void refreshPrice(from, date)
+                              }}
+                            />
+                            <div>{daysLabel}</div>
                           </div>
                         </div>
                         <div className="checkout-detail" style={{ height: bookingDetailHeight }}>
@@ -530,55 +501,6 @@ const Checkout = () => {
                               error={!!errors.fullName}
                               autoComplete="off"
                             />
-                          </FormControl>
-                          <FormControl fullWidth margin="dense">
-                            <InputLabel className="required">{commonStrings.EMAIL}</InputLabel>
-                            <OutlinedInput
-                              // {...register('email')}
-                              type="text"
-                              label={commonStrings.EMAIL}
-                              error={!!errors.email || emailRegistered}
-                              required
-                              autoComplete="off"
-                              onChange={(e) => {
-                                if (errors.email) {
-                                  clearErrors('email')
-                                }
-                                setEmailRegistered(false)
-                                setEmailInfo(false)
-                                setValue('email', e.target.value)
-                              }}
-                              onBlur={async (e) => {
-                                trigger('email')
-                                const email = e.target.value
-
-                                if (validateEmail(email)) {
-                                  const status = await UserService.validateEmail({ email })
-                                  if (status === 200) {
-                                    setEmailRegistered(false)
-                                    setEmailInfo(true)
-                                  } else {
-                                    setEmailRegistered(true)
-                                    setEmailInfo(false)
-                                  }
-                                } else {
-                                  setEmailRegistered(false)
-                                  setEmailInfo(false)
-                                }
-                              }}
-                            />
-                            <FormHelperText error={!!errors.email || emailRegistered}>
-                              {(errors.email && errors.email.message) || ''}
-                              {(emailRegistered && (
-                                <span>
-                                  <span>{commonStrings.EMAIL_ALREADY_REGISTERED}</span>
-                                  <span> </span>
-                                  <a href={`/sign-in?c=${car._id}&p=${pickupLocation._id}&d=${dropOffLocation._id}&f=${from.getTime()}&t=${to.getTime()}&from=checkout`}>{strings.SIGN_IN}</a>
-                                </span>
-                              ))
-                                || ''}
-                              {(emailInfo && !errors.email && strings.EMAIL_INFO) || ''}
-                            </FormHelperText>
                           </FormControl>
                           <FormControl fullWidth margin="dense">
                             <InputLabel className="required">{commonStrings.PHONE}</InputLabel>
@@ -636,12 +558,13 @@ const Checkout = () => {
                                 <tr>
                                   <td aria-label="tos">
                                     <Checkbox
-                                      {...register('tos')}
-                                      onChange={(e) => {
-                                        if (e.target.checked && errors.tos) {
-                                          clearErrors('tos')
-                                        }
-                                      }}
+                                      {...register('tos', {
+                                        onChange: (e) => {
+                                          if (e.target.checked && errors.tos) {
+                                            clearErrors('tos')
+                                          }
+                                        },
+                                      })}
                                       color="primary"
                                     />
                                   </td>
@@ -784,88 +707,6 @@ const Checkout = () => {
                       </div>
                     )}
 
-                    {/* Payment options */}
-
-                    <div className="payment-options-container">
-                      <div className="checkout-info">
-                        <PaymentOptionsIcon />
-                        <span>{strings.PAYMENT_OPTIONS}</span>
-                      </div>
-                      <div className="payment-options">
-                        <FormControl>
-                          <RadioGroup
-                            defaultValue={depositPrice > 0 ? 'payOnline' : 'payInFull'}
-                            onChange={(e) => {
-                              setValue('payLater', e.target.value === 'payLater')
-                              setValue('payDeposit', e.target.value === 'payDeposit')
-                              setValue('payInFull', e.target.value === 'payInFull')
-                            }}
-                          >
-                            {car.supplier.payLater && (
-                              <FormControlLabel
-                                value="payLater"
-                                control={<Radio />}
-                                disabled={!!clientSecret || payPalLoaded}
-                                className={clientSecret || payPalLoaded ? 'payment-radio-disabled' : ''}
-                                label={(
-                                  <span className="payment-button">
-                                    <span>{strings.PAY_LATER}</span>
-                                    <span className="payment-info">{strings.PAY_LATER_INFO}</span>
-                                  </span>
-                                )}
-                              />
-                            )}
-                            {
-                              car.deposit > 0 && (
-                                <FormControlLabel
-                                  value="payDeposit"
-                                  control={<Radio />}
-                                  disabled={!!clientSecret || payPalLoaded}
-                                  className={clientSecret || payPalLoaded ? 'payment-radio-disabled' : ''}
-                                  label={(
-                                    <span className="payment-button">
-                                      <span>{strings.PAY_DEPOSIT}</span>
-                                      <span className="payment-info">{strings.PAY_DEPOSIT_INFO}</span>
-                                    </span>
-                                  )}
-                                />
-                              )
-                            }
-                            {
-                              depositPrice > 0 && (
-                                <FormControlLabel
-                                  value="payOnline"
-                                  control={<Radio />}
-                                  disabled={!!clientSecret || payPalLoaded}
-                                  className={clientSecret || payPalLoaded ? 'payment-radio-disabled' : ''}
-                                  label={(
-                                    <span className="payment-button">
-                                      <span>{strings.PAY_ONLINE}</span>
-                                      <span className="payment-info">{strings.PAY_ONLINE_INFO}</span>
-                                    </span>
-                                  )}
-                                />
-                              )
-                            }
-                            <FormControlLabel
-                              value="payInFull"
-                              control={<Radio />}
-                              disabled={!!clientSecret || payPalLoaded}
-                              className={clientSecret || payPalLoaded ? 'payment-radio-disabled' : ''}
-                              label={(
-                                <span className="payment-button">
-                                  <span>{strings.PAY_IN_FULL}</span>
-                                  <span className="payment-info">{strings.PAY_IN_FULL_INFO}</span>
-                                </span>
-                              )}
-                            />
-                          </RadioGroup>
-                        </FormControl>
-                      </div>
-                    </div>
-
-                    {/* Checkout checklist */}
-
                     <div className="checkout-details-container">
                       <div className="checkout-info">
                         <ChecklistIcon />
@@ -887,106 +728,33 @@ const Checkout = () => {
                       </div>
                     </div>
 
-                    {/* Total price */}
-
-                    <div className="payment-info">
-                      <div className="payment-info-title">
-                        {
-                          payDeposit ? strings.DEPOSIT : `${strings.PRICE_FOR} ${days} ${days > 1 ? strings.DAYS : strings.DAY}`
-                        }
+                    <div className="payment-options-container">
+                      <div className="checkout-info">
+                        <PaymentOptionsIcon />
+                        <span>{strings.PAYMENT_OPTIONS}</span>
                       </div>
-                      <div className="payment-info-price">
-                        {
-                          bookcarsHelper.formatPrice(
-                            payDeposit ? depositPrice
-                              : payInFull ? (price + depositPrice)
-                                : price
-                            , commonStrings.CURRENCY, language)
-                        }
+                      <div className="payment-options">
+                        <p>{strings.PAY_AT_PICKUP_NOTICE}</p>
                       </div>
                     </div>
-
-                    {(!car.supplier.payLater || !payLater) && (
-                      env.PAYMENT_GATEWAY === bookcarsTypes.PaymentGateway.Stripe
-                        ? (
-                          clientSecret && (
-                            <div className="payment-options-container">
-                              <EmbeddedCheckoutProvider
-                                stripe={stripePromise}
-                                options={{ clientSecret }}
-                              >
-                                <EmbeddedCheckout />
-                              </EmbeddedCheckoutProvider>
-                            </div>
-                          )
-                        )
-                        : payPalLoaded ? (
-                          <div className="payment-options-container">
-                            <PayPalButtons
-                              createOrder={async () => {
-                                const name = bookcarsHelper.truncateString(car.name, PayPalService.ORDER_NAME_MAX_LENGTH)
-                                const _description = `${car.name} - ${daysLabel} - ${pickupLocation._id === dropOffLocation._id ? pickupLocation.name : `${pickupLocation.name} - ${dropOffLocation.name}`}`
-                                const description = bookcarsHelper.truncateString(_description, PayPalService.ORDER_DESCRIPTION_MAX_LENGTH)
-                                let amount = price
-                                if (payDeposit) {
-                                  amount = depositPrice
-                                } else if (payInFull) {
-                                  amount = price + depositPrice
-                                }
-                                const orderId = await PayPalService.createOrder(bookingId!, amount, PaymentService.getCurrency(), name, description)
-                                return orderId
-                              }}
-                              onApprove={async (data, actions) => {
-                                try {
-                                  setPayPalProcessing(true)
-                                  await actions.order?.capture()
-                                  const { orderID } = data
-                                  const status = await PayPalService.checkOrder(bookingId!, orderID)
-
-                                  if (status === 200) {
-                                    setVisible(false)
-                                    setSuccess(true)
-                                  } else {
-                                    setPaymentFailed(true)
-                                  }
-                                } catch (err) {
-                                  helper.error(err)
-                                } finally {
-                                  setPayPalProcessing(false)
-                                }
-                              }}
-                              onInit={() => {
-                                setPayPalInit(true)
-                              }}
-                              onCancel={() => {
-                                setPayPalProcessing(false)
-                              }}
-                              onError={() => {
-                                setPayPalProcessing(false)
-                              }}
-                            />
-                          </div>
-                        ) : null
-                    )}
+                    <div className="payment-info">
+                      <div className="payment-info-title">
+                        {`${strings.PRICE_FOR} ${days} ${days > 1 ? strings.DAYS : strings.DAY}`}
+                      </div>
+                      <div className="payment-info-price">
+                        {bookcarsHelper.formatPrice(price, commonStrings.CURRENCY, language)}
+                      </div>
+                    </div>
                     <div className="checkout-buttons">
-                      {(
-                        (env.PAYMENT_GATEWAY === bookcarsTypes.PaymentGateway.Stripe && !clientSecret)
-                        || (env.PAYMENT_GATEWAY === bookcarsTypes.PaymentGateway.PayPal && !payPalInit)
-                        || payLater) && (
-                          <Button
-                            type="submit"
-                            variant="contained"
-                            className="btn-checkout btn-margin-bottom"
-                            aria-label="Checkout"
-                            disabled={isSubmitting || (payPalLoaded && !payPalInit)}
-                          >
-                            {
-                              (isSubmitting || (payPalLoaded && !payPalInit))
-                                ? <CircularProgress color="inherit" size={24} />
-                                : strings.BOOK
-                            }
-                          </Button>
-                        )}
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        className="btn-checkout btn-margin-bottom"
+                        aria-label="Checkout"
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? <CircularProgress color="inherit" size={24} /> : strings.BOOK}
+                      </Button>
                       <Button
                         variant="outlined"
                         color="primary"

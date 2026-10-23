@@ -26,7 +26,6 @@ import * as helper from '@/utils/helper'
 import env from '@/config/env.config'
 import CountrySelectList from '@/components/CountrySelectList'
 import Avatar from '@/components/Avatar'
-import PositionInput from '@/components/PositionInput'
 import ParkingSpotEditList from '@/components/ParkingSpotEditList'
 import SupplierBadge from '@/components/SupplierBadge'
 import { schema, ParkingSpot, FormFields } from '@/models/LocationForm'
@@ -61,8 +60,7 @@ const UpdateLocation = () => {
     defaultValues: {
       country: undefined,
       names: env._LANGUAGES.map(lang => ({ language: lang.code, name: '' })),
-      latitude: '',
-      longitude: '',
+      mapUrl: '',
       parkingSpots: [],
       image: undefined,
       parentLocation: undefined,
@@ -138,11 +136,20 @@ const UpdateLocation = () => {
 
       await Promise.all(validationPromises)
 
+      const mapUrl = data.mapUrl?.trim() || ''
+      const mapPoint = mapUrl ? bookcarsHelper.parseGoogleMapsLink(mapUrl) : null
+      if (mapUrl && !mapPoint) {
+        setError('mapUrl', { type: 'manual', message: clStrings.INVALID_MAP_LINK })
+        setFocus('mapUrl')
+        return
+      }
+
       if (isValid) {
         const payload: bookcarsTypes.UpsertLocationPayload = {
           country: data.country?._id!,
-          latitude: data.latitude ? Number(data.latitude) : undefined,
-          longitude: data.longitude ? Number(data.longitude) : undefined,
+          mapUrl: mapUrl || undefined,
+          latitude: mapPoint?.latitude,
+          longitude: mapPoint?.longitude,
           names: data.names,
           image: watchImage,
           parkingSpots: data.parkingSpots as bookcarsTypes.ParkingSpot[] || [],
@@ -169,7 +176,7 @@ const UpdateLocation = () => {
   }
 
   const onLoad = async (_user?: bookcarsTypes.User) => {
-    if (_user && _user.verified) {
+    if (_user) {
       setLoading(true)
       setUser(_user)
 
@@ -202,8 +209,11 @@ const UpdateLocation = () => {
               setValue('country', _location.country as Option)
               setOriginalNames(_names)
               setValue('names', _names)
-              setValue('longitude', (_location.longitude && _location.longitude.toString()) || '')
-              setValue('latitude', (_location.latitude && _location.latitude.toString()) || '')
+              setValue('mapUrl', _location.mapUrl || (
+                _location.latitude && _location.longitude
+                  ? `https://www.google.com/maps?q=${_location.latitude},${_location.longitude}`
+                  : ''
+              ))
               setValue('parkingSpots', _location.parkingSpots?.map((ps) => ({
                 latitude: ps.latitude.toString(),
                 longitude: ps.longitude.toString(),
@@ -302,17 +312,16 @@ const UpdateLocation = () => {
               ))}
 
               <FormControl fullWidth margin="dense">
-                <InputLabel>{commonStrings.LATITUDE}</InputLabel>
-                <PositionInput
-                  {...register('latitude')}
+                <InputLabel>{clStrings.MAP_LINK}</InputLabel>
+                <Input
+                  type="text"
+                  error={!!errors.mapUrl}
+                  {...register('mapUrl')}
+                  autoComplete="off"
                 />
-              </FormControl>
-
-              <FormControl fullWidth margin="dense" >
-                <InputLabel>{commonStrings.LONGITUDE}</InputLabel>
-                <PositionInput
-                  {...register('longitude')}
-                />
+                <FormHelperText error={!!errors.mapUrl}>
+                  {errors.mapUrl?.message || ''}
+                </FormHelperText>
               </FormControl>
 
               <ParkingSpotEditList

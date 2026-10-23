@@ -37,7 +37,21 @@ export const create = async (req: Request, res: Response) => {
     }
 
     // date based price
-    const { dateBasedPrices, ...carFields } = body
+    const { dateBasedPrices, units, ...carFields } = body
+    if (!carFields.supplier) {
+      const fleet = await User.findOne({ type: bookcarsTypes.UserType.Supplier })
+      if (!fleet) {
+        throw new Error('Supplier not found')
+      }
+      carFields.supplier = fleet._id.toString()
+    }
+    if (!carFields.locations?.length) {
+      const allLocations = await Location.find().select('_id')
+      if (!allLocations.length) {
+        throw new Error('Location not found')
+      }
+      carFields.locations = allLocations.map((location) => location._id.toString())
+    }
     const dateBasedPriceIds: string[] = []
     if (body.isDateBasedPrice) {
       for (const dateBasePrice of dateBasedPrices) {
@@ -96,6 +110,28 @@ export const create = async (req: Request, res: Response) => {
 
       car.image = filename
       await car.save()
+
+      if (units?.length) {
+        for (const unit of units) {
+          const plate = unit.licensePlate?.trim()
+          if (!plate) {
+            continue
+          }
+          const { _id, image, ...rest } = car.toObject()
+          void _id
+          void image
+          const clone = new Car({
+            ...rest,
+            licensePlate: plate,
+            color: unit.color?.trim() || '',
+          })
+          await clone.save()
+          const cloneFilename = `${clone._id}_${Date.now()}${ext}`
+          await asyncFs.copyFile(newPath, path.resolve(carsDir, cloneFilename))
+          clone.image = cloneFilename
+          await clone.save()
+        }
+      }
     } else {
       await Car.deleteOne({ _id: car._id })
       throw new Error(`Image ${safeImage} not found`)
@@ -204,6 +240,7 @@ export const update = async (req: Request, res: Response) => {
         supplier,
         name,
         licensePlate,
+        color,
         minimumAge,
         available,
         fullyBooked,
@@ -244,9 +281,9 @@ export const update = async (req: Request, res: Response) => {
 
       car.supplier = new mongoose.Types.ObjectId(supplier)
       car.minimumAge = minimumAge
-      car.locations = locations.map((l) => new mongoose.Types.ObjectId(l))
       car.name = name
       car.licensePlate = licensePlate
+      car.color = color
       car.available = available
       car.fullyBooked = fullyBooked
       car.comingSoon = comingSoon
@@ -268,6 +305,15 @@ export const update = async (req: Request, res: Response) => {
       car.gearbox = gearbox as bookcarsTypes.GearboxType
       car.fuelPolicy = fuelPolicy as bookcarsTypes.FuelPolicy
       car.mileage = mileage
+      if (body.odometer != null && !Number.isNaN(Number(body.odometer))) {
+        car.odometer = Number(body.odometer)
+      }
+      if (!locations?.length) {
+        const allLocations = await Location.find().select('_id')
+        car.locations = allLocations.map((location) => location._id)
+      } else {
+        car.locations = locations.map((l) => new mongoose.Types.ObjectId(l))
+      }
       car.cancellation = cancellation
       car.amendments = amendments
       car.theftProtection = theftProtection
@@ -698,7 +744,9 @@ export const getCars = async (req: Request, res: Response) => {
     const { body }: { body: bookcarsTypes.GetCarsPayload } = req
     const page = Number.parseInt(req.params.page, 10)
     const size = Number.parseInt(req.params.size, 10)
-    const suppliers = body.suppliers!.map((id) => new mongoose.Types.ObjectId(id))
+    const supplierIds = (body.suppliers || []).map((id) => new mongoose.Types.ObjectId(id))
+    const sessionUser = await User.findById(req.user?._id)
+    const listEveryCar = sessionUser?.type === bookcarsTypes.UserType.Admin && supplierIds.length === 0
     const {
       carType,
       gearbox,
@@ -718,7 +766,7 @@ export const getCars = async (req: Request, res: Response) => {
     const $match: mongoose.QueryFilter<bookcarsTypes.Car> = {
       $and: [
         { $or: [{ name: { $regex: keyword, $options: options } }, { licensePlate: { $regex: keyword, $options: options } }] },
-        { supplier: { $in: suppliers } },
+        ...(listEveryCar ? [] : [{ supplier: { $in: supplierIds } }]),
       ],
     }
 
@@ -915,7 +963,6 @@ export const getCars = async (req: Request, res: Response) => {
 export const getBookingCars = async (req: Request, res: Response) => {
   try {
     const { body }: { body: bookcarsTypes.GetBookingCarsPayload } = req
-    const supplier = new mongoose.Types.ObjectId(body.supplier)
     const pickupLocation = new mongoose.Types.ObjectId(body.pickupLocation)
     const keyword = escapeStringRegexp(String(req.query.s || ''))
     const options = 'i'
@@ -938,11 +985,11 @@ export const getBookingCars = async (req: Request, res: Response) => {
             as: 'supplier',
           },
         },
-        { $unwind: { path: '$supplier', preserveNullAndEmptyArrays: false } },
+        { $unwind: { path: '$supplier', preserveNullAndEmptyArrays: true } },
         {
           $match: {
             $and: [
-              { 'supplier._id': supplier },
+              ...(body.supplier ? [{ 'supplier._id': new mongoose.Types.ObjectId(body.supplier) }] : []),
               { locations: pickupLocation },
               { available: true }, { name: { $regex: keyword, $options: options } },
             ],
@@ -956,8 +1003,14 @@ export const getBookingCars = async (req: Request, res: Response) => {
     )
 
     for (const car of cars) {
-      const { _id, fullName, avatar, priceChangeRate } = car.supplier
-      car.supplier = { _id, fullName, avatar, priceChangeRate }
+      if (car.supplier) {
+        const { _id, fullName, avatar, priceChangeRate } = car.supplier
+        car.supplier = { _id, fullName, avatar, priceChangeRate }
+      }
+      const details = [car.licensePlate, car.color].filter(Boolean).join(' · ')
+      if (details) {
+        car.name = `${car.name} — ${details}`
+      }
     }
 
     res.json(cars)
@@ -1301,6 +1354,83 @@ export const getFrontendCars = async (req: Request, res: Response) => {
     res.json(data)
   } catch (err) {
     logger.error(`[car.getFrontendCars] ${i18n.t('ERROR')} ${req.query.s}`, err)
+    res.status(400).send(i18n.t('ERROR') + err)
+  }
+}
+
+/**
+ * Cars shown on the public homepage.
+ *
+ * @export
+ * @async
+ * @param {Request} req
+ * @param {Response} res
+ * @returns {unknown}
+ */
+export const getHomeCars = async (req: Request, res: Response) => {
+  try {
+    const cars = await Car.find({ available: { $in: [true, null] } })
+      .select('name image hourlyPrice dailyPrice range color licensePlate')
+      .sort({ updatedAt: -1 })
+      .limit(24)
+      .lean()
+
+    res.json(cars)
+  } catch (err) {
+    logger.error(`[car.getHomeCars] ${i18n.t('ERROR')}`, err)
+    res.status(400).send(i18n.t('ERROR') + err)
+  }
+}
+
+export const getMaintenance = async (req: Request, res: Response) => {
+  try {
+    const cars = await Car.find()
+      .select('name licensePlate color odometer lastOilChangeDate lastOilChangeMileage lastServiceDate lastServiceMileage')
+      .sort({ name: 1, licensePlate: 1 })
+      .lean()
+    res.json(cars)
+  } catch (err) {
+    logger.error(`[car.getMaintenance] ${i18n.t('ERROR')}`, err)
+    res.status(400).send(i18n.t('ERROR') + err)
+  }
+}
+
+export const updateMaintenance = async (req: Request, res: Response) => {
+  try {
+    const { _id, odometer, lastOilChangeDate, lastOilChangeMileage, lastServiceDate, lastServiceMileage } = req.body
+    if (!helper.isValidObjectId(_id)) {
+      throw new Error('Car id is not valid')
+    }
+    const car = await Car.findById(_id)
+    if (!car) {
+      throw new Error('Car not found')
+    }
+
+    const toNumber = (value: unknown) => {
+      if (value === '' || value == null) {
+        return undefined
+      }
+      const number = Number(value)
+      return Number.isNaN(number) ? undefined : number
+    }
+    const toDate = (value: unknown) => {
+      if (!value) {
+        return undefined
+      }
+      const raw = String(value)
+      const date = raw.length === 10 ? new Date(`${raw}T12:00:00`) : new Date(raw)
+      return Number.isNaN(date.getTime()) ? undefined : date
+    }
+
+    car.odometer = toNumber(odometer)
+    car.lastOilChangeMileage = toNumber(lastOilChangeMileage)
+    car.lastServiceMileage = toNumber(lastServiceMileage)
+    car.lastOilChangeDate = toDate(lastOilChangeDate)
+    car.lastServiceDate = toDate(lastServiceDate)
+    await car.save()
+    res.sendStatus(200)
+  } catch (err) {
+    logger.error(`[car.updateMaintenance] ${i18n.t('ERROR')}`, err)
     res.status(400).send(i18n.t('ERROR') + err)
   }
 }

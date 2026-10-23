@@ -15,6 +15,9 @@ const locationSchema = new Schema<env.Location>(
     longitude: {
       type: Number,
     },
+    mapUrl: {
+      type: String,
+    },
     values: {
       type: [Schema.Types.ObjectId],
       ref: 'LocationValue',

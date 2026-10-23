@@ -15,6 +15,10 @@ const carSchema = new Schema<env.Car>(
       index: true,
       trim: true,
     },
+    color: {
+      type: String,
+      trim: true,
+    },
     supplier: {
       type: Schema.Types.ObjectId,
       required: [true, "can't be blank"],
@@ -147,6 +151,21 @@ const carSchema = new Schema<env.Car>(
     mileage: {
       type: Number,
       required: [true, "can't be blank"],
+    },
+    odometer: {
+      type: Number,
+    },
+    lastOilChangeDate: {
+      type: Date,
+    },
+    lastOilChangeMileage: {
+      type: Number,
+    },
+    lastServiceDate: {
+      type: Date,
+    },
+    lastServiceMileage: {
+      type: Number,
     },
     cancellation: {
       type: Number,

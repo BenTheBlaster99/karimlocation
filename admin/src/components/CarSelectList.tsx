@@ -11,7 +11,6 @@ import * as bookcarsTypes from ':bookcars-types'
 import env from '@/config/env.config'
 import { strings as commonStrings } from '@/lang/common'
 import { strings as bfStrings } from '@/lang/booking-filter'
-import { strings as blStrings } from '@/lang/booking-list'
 import { strings } from '@/lang/booking-car-list'
 import * as CarService from '@/services/CarService'
 import MultipleSelect from './MultipleSelect'
@@ -23,7 +22,7 @@ interface CarSelectListProps {
   multiple?: boolean
   variant?: TextFieldVariants
   value?: bookcarsTypes.Car
-  supplier: string
+  supplier?: string
   pickupLocation: string
   onChange?: (values: bookcarsTypes.Car[]) => void
 }
@@ -41,7 +40,7 @@ const CarSelectList = ({
   const [init, setInit] = useState(false)
   const [loading, setLoading] = useState(false)
   const [fetch, setFetch] = useState(true)
-  const [currentSupplier, setCurrentSupplier] = useState('-1')
+  const [currentSupplier, setCurrentSupplier] = useState('')
   const [currentPickupLocation, setCurrentPickupLocation] = useState('-1')
   const [keyword, setKeyword] = useState('')
   const [page, setPage] = useState(1)
@@ -107,19 +106,18 @@ const CarSelectList = ({
 
   const fetchData = async (_page: number, _keyword: string, _supplier: string, _pickupLocation: string) => {
     try {
-      if (!_pickupLocation) {
+      if (!_pickupLocation || _pickupLocation === '-1') {
+        setOpenDialog(true)
         return
       }
 
-      const payload: bookcarsTypes.GetBookingCarsPayload = { supplier: _supplier, pickupLocation: _pickupLocation }
+      const payload: bookcarsTypes.GetBookingCarsPayload = {
+        supplier: _supplier,
+        pickupLocation: _pickupLocation,
+      }
 
       if (closeDialog) {
         setCloseDialog(false)
-      }
-
-      if (_supplier === '-1' || _pickupLocation === '-1') {
-        setOpenDialog(true)
-        return
       }
 
       setLoading(true)
@@ -196,15 +194,7 @@ const CarSelectList = ({
       <Dialog disableEscapeKeyDown maxWidth="xs" open={openDialog}>
         <DialogTitle className="dialog-header">{commonStrings.INFO}</DialogTitle>
         <DialogContent className="dialog-content">
-          {currentSupplier === '-1' && currentPickupLocation === '-1' ? (
-            `${strings.REQUIRED_FIELDS}${blStrings.SUPPLIER} ${commonStrings.AND} ${bfStrings.PICK_UP_LOCATION}`
-          ) : currentSupplier === '-1' ? (
-            `${strings.REQUIRED_FIELD}${blStrings.SUPPLIER}`
-          ) : currentPickupLocation === '-1' ? (
-            `${strings.REQUIRED_FIELD}${bfStrings.PICK_UP_LOCATION}`
-          ) : (
-            <></>
-          )}
+          {`${strings.REQUIRED_FIELD}${bfStrings.PICK_UP_LOCATION}`}
         </DialogContent>
         <DialogActions className="dialog-actions">
           <Button onClick={handleCloseDialog} variant="contained" className="btn-secondary">

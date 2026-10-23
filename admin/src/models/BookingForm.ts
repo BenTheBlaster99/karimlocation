@@ -9,6 +9,7 @@ import { supplierSchema, optionSchema } from '@/models/common'
 export const schema = z.object({
   supplier: supplierSchema.optional(),
   driver: optionSchema.optional(),
+  driverName: z.string().trim().min(2, { message: commonStrings.REQUIRED }),
   pickupLocation: optionSchema.optional(),
   dropOffLocation: optionSchema.optional(),
   car: optionSchema.optional(),

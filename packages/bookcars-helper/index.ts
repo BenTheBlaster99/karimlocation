@@ -517,6 +517,34 @@ export const getAllBookingStatuses = () => [
  * @param {('K' | 'M')} unit
  * @returns {number}
  */
+/**
+ * Read the pin from a Google Maps link.
+ * Prefers the place pin (`!3d` / `!4d`) over the map camera (`@lat,lng`).
+ */
+export const parseGoogleMapsLink = (link: string): { latitude: number, longitude: number } | null => {
+  const value = link.trim()
+  if (!value) {
+    return null
+  }
+
+  const pin = value.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/)
+  if (pin) {
+    return { latitude: Number(pin[1]), longitude: Number(pin[2]) }
+  }
+
+  const camera = value.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/)
+  if (camera) {
+    return { latitude: Number(camera[1]), longitude: Number(camera[2]) }
+  }
+
+  const query = value.match(/[?&](?:q|ll)=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/)
+  if (query) {
+    return { latitude: Number(query[1]), longitude: Number(query[2]) }
+  }
+
+  return null
+}
+
 export const distance = (lat1: number, lon1: number, lat2: number, lon2: number, unit: 'K' | 'M') => {
   const radlat1 = (Math.PI * lat1) / 180
   const radlat2 = (Math.PI * lat2) / 180

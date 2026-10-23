@@ -17,13 +17,10 @@ import {
 } from '@mui/material'
 import {
   Menu as MenuIcon,
-  Mail as MailIcon,
   Notifications as NotificationsIcon,
   More as MoreIcon,
   Settings as SettingsIcon,
   Home as HomeIcon,
-  InfoOutlined as AboutIcon,
-  Feed as TosIcon,
   ExitToApp as SignoutIcon,
   Login as LoginIcon,
   EventSeat as BookingsIcon,
@@ -344,7 +341,7 @@ const Header = ({
                   <MenuIcon />
                 </IconButton>
 
-                <Button onClick={() => navigate('/')} className="logo">{env.WEBSITE_NAME}</Button>
+                <Button onClick={() => navigate('/')} className="logo">Karim Location</Button>
 
                 {!env.isMobile && headerTitle && <div className="header-title">{headerTitle}</div>}
               </>
@@ -394,15 +391,6 @@ const Header = ({
                 </ListItem>
                 <ListItem
                   onClick={() => {
-                    navigate('/about')
-                    handleSideMenuClose()
-                  }}
-                >
-                  <ListItemIcon><AboutIcon /></ListItemIcon>
-                  <ListItemText primary={strings.ABOUT} />
-                </ListItem>
-                <ListItem
-                  onClick={() => {
                     navigate('/cookie-policy')
                     handleSideMenuClose()
                   }}
@@ -421,30 +409,12 @@ const Header = ({
                 </ListItem>
                 <ListItem
                   onClick={() => {
-                    navigate('/tos')
-                    handleSideMenuClose()
-                  }}
-                >
-                  <ListItemIcon><TosIcon /></ListItemIcon>
-                  <ListItemText primary={strings.TOS} />
-                </ListItem>
-                <ListItem
-                  onClick={() => {
                     navigate('/faq')
                     handleSideMenuClose()
                   }}
                 >
                   <ListItemIcon><FaqIcon /></ListItemIcon>
                   <ListItemText primary={strings.FAQ} />
-                </ListItem>
-                <ListItem
-                  onClick={() => {
-                    navigate('/contact')
-                    handleSideMenuClose()
-                  }}
-                >
-                  <ListItemIcon><MailIcon /></ListItemIcon>
-                  <ListItemText primary={strings.CONTACT} />
                 </ListItem>
                 {env.isMobile && !hideSignin && !isSignedIn && isLoaded && (
                   <>

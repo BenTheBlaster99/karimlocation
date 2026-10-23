@@ -8,6 +8,7 @@ import {
   Input
 } from '@mui/material'
 import * as bookcarsTypes from ':bookcars-types'
+import * as bookcarsHelper from ':bookcars-helper'
 import { useForm, useFieldArray, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Layout from '@/components/Layout'
@@ -20,7 +21,6 @@ import CountrySelectList from '@/components/CountrySelectList'
 import Avatar from '@/components/Avatar'
 import Backdrop from '@/components/SimpleBackdrop'
 import ParkingSpotEditList from '@/components/ParkingSpotEditList'
-import PositionInput from '@/components/PositionInput'
 import { UserContextType, useUserContext } from '@/context/UserContext'
 import { schema, ParkingSpot, FormFields } from '@/models/LocationForm'
 import LocationSelectList from '@/components/LocationSelectList'
@@ -50,8 +50,7 @@ const CreateLocation = () => {
     defaultValues: {
       country: undefined,
       names: env._LANGUAGES.map(lang => ({ language: lang.code, name: '' })),
-      latitude: '',
-      longitude: '',
+      mapUrl: '',
       parkingSpots: [],
       image: undefined,
       parentLocation: undefined,
@@ -113,11 +112,20 @@ const CreateLocation = () => {
 
       await Promise.all(validationPromises)
 
+      const mapUrl = data.mapUrl?.trim() || ''
+      const mapPoint = mapUrl ? bookcarsHelper.parseGoogleMapsLink(mapUrl) : null
+      if (mapUrl && !mapPoint) {
+        setError('mapUrl', { type: 'manual', message: strings.INVALID_MAP_LINK })
+        setFocus('mapUrl')
+        return
+      }
+
       if (isValid) {
         const payload: bookcarsTypes.UpsertLocationPayload = {
           country: data.country?._id!,
-          latitude: data.latitude ? Number(data.latitude) : undefined,
-          longitude: data.longitude ? Number(data.longitude) : undefined,
+          mapUrl: mapUrl || undefined,
+          latitude: mapPoint?.latitude,
+          longitude: mapPoint?.longitude,
           names: data.names,
           image: data.image,
           parkingSpots: data.parkingSpots as bookcarsTypes.ParkingSpot[] || [],
@@ -131,8 +139,7 @@ const CreateLocation = () => {
           reset({
             country: undefined,
             names: env._LANGUAGES.map(lang => ({ language: lang.code, name: '' })),
-            latitude: '',
-            longitude: '',
+            mapUrl: '',
             parkingSpots: [],
             image: undefined,
             parentLocation: undefined,
@@ -224,17 +231,16 @@ const CreateLocation = () => {
             ))}
 
             <FormControl fullWidth margin="dense">
-              <InputLabel>{commonStrings.LATITUDE}</InputLabel>
-              <PositionInput
-                {...register('latitude')}
+              <InputLabel>{strings.MAP_LINK}</InputLabel>
+              <Input
+                type="text"
+                error={!!errors.mapUrl}
+                {...register('mapUrl')}
+                autoComplete="off"
               />
-            </FormControl>
-
-            <FormControl fullWidth margin="dense" >
-              <InputLabel>{commonStrings.LONGITUDE}</InputLabel>
-              <PositionInput
-                {...register('longitude')}
-              />
+              <FormHelperText error={!!errors.mapUrl}>
+                {errors.mapUrl?.message || ''}
+              </FormHelperText>
             </FormControl>
 
             <ParkingSpotEditList

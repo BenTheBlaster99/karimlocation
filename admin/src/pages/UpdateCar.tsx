@@ -27,7 +27,6 @@ import ErrorMessage from '@/components/Error'
 import Backdrop from '@/components/SimpleBackdrop'
 import NoMatch from './NoMatch'
 import Avatar from '@/components/Avatar'
-import SupplierSelectList from '@/components/SupplierSelectList'
 import LocationSelectList from '@/components/LocationSelectList'
 import CarTypeList from '@/components/CarTypeList'
 import GearboxList from '@/components/GearboxList'
@@ -46,7 +45,6 @@ const UpdateCar = () => {
   const navigate = useNavigate()
 
   const [user, setUser] = useState<bookcarsTypes.User>()
-  const [isSupplier, setIsSupplier] = useState(false)
   const [car, setCar] = useState<bookcarsTypes.Car>()
   const [noMatch, setNoMatch] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -71,6 +69,7 @@ const UpdateCar = () => {
     defaultValues: {
       name: '',
       licensePlate: '',
+      color: '',
       supplier: undefined,
       minimumAge: String(env.MINIMUM_AGE),
       locations: [],
@@ -95,6 +94,7 @@ const UpdateCar = () => {
       doors: '',
       aircon: false,
       mileage: '',
+      odometer: '',
       fuelPolicy: '',
       cancellation: '',
       amendments: '',
@@ -178,14 +178,16 @@ const UpdateCar = () => {
         }
       }
 
-      const payload: bookcarsTypes.UpdateCarPayload = {
+      const payload = {
         loggedUser: user!._id!,
         _id: car._id,
         name: data.name,
         licensePlate: data.licensePlate,
+        color: data.color || '',
         supplier: supplier._id!,
         minimumAge: Number.parseInt(data.minimumAge, 10),
-        locations: data.locations.map((l) => l._id),
+        locations: [],
+        odometer: data.odometer ? Number(data.odometer) : undefined,
         dailyPrice: Number(data.dailyPrice),
         discountedDailyPrice: getPrice(data.discountedDailyPrice!),
         hourlyPrice: getPrice(data.hourlyPrice || ''),
@@ -206,22 +208,22 @@ const UpdateCar = () => {
         doors: Number.parseInt(data.doors, 10),
         fuelPolicy: data.fuelPolicy,
         mileage: extraToNumber(data.mileage),
-        cancellation: extraToNumber(data.cancellation),
-        amendments: extraToNumber(data.amendments),
-        theftProtection: extraToNumber(data.theftProtection),
-        collisionDamageWaiver: extraToNumber(data.collisionDamageWaiver),
-        fullInsurance: extraToNumber(data.fullInsurance),
+        cancellation: -1,
+        amendments: -1,
+        theftProtection: -1,
+        collisionDamageWaiver: -1,
+        fullInsurance: -1,
         additionalDriver: extraToNumber(data.additionalDriver),
         range: data.range,
         multimedia: data.multimedia!,
         rating: Number(data.rating) || undefined,
-        co2: Number(data.co2) || undefined,
+        co2: undefined,
         comingSoon: data.comingSoon,
         fullyBooked: data.fullyBooked,
         blockOnPay: data.blockOnPay,
         isDateBasedPrice: data.isDateBasedPrice,
         dateBasedPrices: data.dateBasedPrices || [],
-      }
+      } as bookcarsTypes.UpdateCarPayload
 
       const status = await CarService.update(payload)
 
@@ -243,10 +245,9 @@ const UpdateCar = () => {
   }
 
   const onLoad = async (_user?: bookcarsTypes.User) => {
-    if (_user && _user.verified) {
+    if (_user) {
       setLoading(true)
       setUser(_user)
-      setIsSupplier(_user.type === bookcarsTypes.RecordType.Supplier)
       const params = new URLSearchParams(window.location.search)
       if (params.has('cr')) {
         const id = params.get('cr')
@@ -271,6 +272,7 @@ const UpdateCar = () => {
               setImageRequired(!_car.image)
               setValue('name', _car.name)
               setValue('licensePlate', _car.licensePlate || '')
+              setValue('color', _car.color || '')
               setValue('supplier', _supplier)
               setValue('minimumAge', _car.minimumAge.toString())
               const lcs: Option[] = []
@@ -312,6 +314,7 @@ const UpdateCar = () => {
               setValue('doors', _car.doors.toString())
               setValue('fuelPolicy', _car.fuelPolicy)
               setValue('mileage', extraToString(_car.mileage))
+              setValue('odometer', _car.odometer != null ? String(_car.odometer) : '')
               setValue('cancellation', extraToString(_car.cancellation))
               setValue('amendments', extraToString(_car.amendments))
               setValue('theftProtection', extraToString(_car.theftProtection))
@@ -393,17 +396,14 @@ const UpdateCar = () => {
                 />
               </FormControl>
 
-              {!isSupplier && (
-                <FormControl fullWidth margin="dense">
-                  <SupplierSelectList
-                    label={strings.SUPPLIER}
-                    required
-                    value={supplier as bookcarsTypes.Option}
-                    variant="standard"
-                    onChange={(values) => setValue('supplier', values.length > 0 ? values[0] as Supplier : undefined)}
-                  />
-                </FormControl>
-              )}
+              <FormControl fullWidth margin="dense">
+                <InputLabel>{strings.COLOR}</InputLabel>
+                <Input
+                  type="text"
+                  {...register('color')}
+                  autoComplete="off"
+                />
+              </FormControl>
 
               <FormControl fullWidth margin="dense">
                 <InputLabel className="required">{strings.MINIMUM_AGE}</InputLabel>
@@ -422,17 +422,6 @@ const UpdateCar = () => {
                 {errors.minimumAge && (
                   <FormHelperText error>{errors.minimumAge.message}</FormHelperText>
                 )}
-              </FormControl>
-
-              <FormControl fullWidth margin="dense">
-                <LocationSelectList
-                  label={strings.LOCATIONS}
-                  value={locations as bookcarsTypes.Option[]}
-                  multiple
-                  required
-                  variant="standard"
-                  onChange={(values) => setValue('locations', values as Option[])}
-                />
               </FormControl>
 
               <FormControl fullWidth margin="dense">
@@ -691,22 +680,6 @@ const UpdateCar = () => {
                 />
               </FormControl>
 
-              <FormControl fullWidth margin="dense">
-                <TextField
-                  label={strings.CO2}
-                  {...register('co2')}
-                  variant="standard"
-                  autoComplete="off"
-                  error={!!errors.co2}
-                  helperText={errors.co2?.message}
-                  onChange={() => {
-                    if (errors.co2) {
-                      clearErrors('co2')
-                    }
-                  }}
-                />
-              </FormControl>
-
               <FormControl fullWidth margin="dense" className="checkbox-fc">
                 <FormControlLabel
                   control={
@@ -835,6 +808,22 @@ const UpdateCar = () => {
 
               <FormControl fullWidth margin="dense">
                 <TextField
+                  label={strings.ODOMETER}
+                  {...register('odometer')}
+                  variant="standard"
+                  autoComplete="off"
+                  error={!!errors.odometer}
+                  helperText={errors.odometer?.message}
+                  onChange={() => {
+                    if (errors.odometer) {
+                      clearErrors('odometer')
+                    }
+                  }}
+                />
+              </FormControl>
+
+              <FormControl fullWidth margin="dense">
+                <TextField
                   label={`${csStrings.MILEAGE} (${csStrings.MILEAGE_UNIT})`}
                   {...register('mileage')}
                   variant="standard"
@@ -844,86 +833,6 @@ const UpdateCar = () => {
                   onChange={() => {
                     if (errors.mileage) {
                       clearErrors('mileage')
-                    }
-                  }}
-                />
-              </FormControl>
-
-              <FormControl fullWidth margin="dense">
-                <TextField
-                  label={`${csStrings.CANCELLATION} (${commonStrings.CURRENCY})`}
-                  {...register('cancellation')}
-                  variant="standard"
-                  autoComplete="off"
-                  error={!!errors.cancellation}
-                  helperText={errors.cancellation?.message}
-                  onChange={() => {
-                    if (errors.cancellation) {
-                      clearErrors('cancellation')
-                    }
-                  }}
-                />
-              </FormControl>
-
-              <FormControl fullWidth margin="dense">
-                <TextField
-                  label={`${csStrings.AMENDMENTS} (${commonStrings.CURRENCY})`}
-                  {...register('amendments')}
-                  variant="standard"
-                  autoComplete="off"
-                  error={!!errors.amendments}
-                  helperText={errors.amendments?.message}
-                  onChange={() => {
-                    if (errors.amendments) {
-                      clearErrors('amendments')
-                    }
-                  }}
-                />
-              </FormControl>
-
-              <FormControl fullWidth margin="dense">
-                <TextField
-                  label={`${csStrings.THEFT_PROTECTION} (${csStrings.CAR_CURRENCY})`}
-                  {...register('theftProtection')}
-                  variant="standard"
-                  autoComplete="off"
-                  error={!!errors.theftProtection}
-                  helperText={errors.theftProtection?.message}
-                  onChange={() => {
-                    if (errors.theftProtection) {
-                      clearErrors('theftProtection')
-                    }
-                  }}
-                />
-              </FormControl>
-
-              <FormControl fullWidth margin="dense">
-                <TextField
-                  label={`${csStrings.COLLISION_DAMAGE_WAVER} (${csStrings.CAR_CURRENCY})`}
-                  {...register('collisionDamageWaiver')}
-                  variant="standard"
-                  autoComplete="off"
-                  error={!!errors.collisionDamageWaiver}
-                  helperText={errors.collisionDamageWaiver?.message}
-                  onChange={() => {
-                    if (errors.collisionDamageWaiver) {
-                      clearErrors('collisionDamageWaiver')
-                    }
-                  }}
-                />
-              </FormControl>
-
-              <FormControl fullWidth margin="dense">
-                <TextField
-                  label={`${csStrings.FULL_INSURANCE} (${csStrings.CAR_CURRENCY})`}
-                  {...register('fullInsurance')}
-                  variant="standard"
-                  autoComplete="off"
-                  error={!!errors.fullInsurance}
-                  helperText={errors.fullInsurance?.message}
-                  onChange={() => {
-                    if (errors.fullInsurance) {
-                      clearErrors('fullInsurance')
                     }
                   }}
                 />

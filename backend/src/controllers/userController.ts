@@ -53,7 +53,7 @@ const _signup = async (req: Request, res: Response, userType: bookcarsTypes.User
   try {
     body.email = helper.trim(body.email, ' ')
     body.active = true
-    body.verified = false
+    body.verified = true
     body.blacklisted = false
     body.type = userType
 
@@ -125,49 +125,7 @@ const _signup = async (req: Request, res: Response, userType: bookcarsTypes.User
     return
   }
 
-  //
-  // Send confirmation email
-  //
-  try {
-    // generate token and save
-    const token = new Token({ user: user._id, token: helper.generateToken() })
-
-    await token.save()
-
-    // Send email
-    i18n.locale = user.language
-
-    const activationLink = `http${env.HTTPS ? 's' : ''}://${req.headers.host}/api/confirm-email/${user.email}/${token.token}`
-
-    const mailOptions: nodemailer.SendMailOptions = {
-      from: env.SMTP_FROM,
-      to: user.email,
-      subject: i18n.t('ACCOUNT_ACTIVATION_SUBJECT'),
-      html:
-        `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
-          <p style="font-size: 16px; color: #555;">
-            ${i18n.t('HELLO')} ${user.fullName},<br><br>
-            ${i18n.t('ACCOUNT_ACTIVATION_LINK')}<br><br>
-            <a href="${activationLink}" target="_blank">${activationLink}</a><br><br>
-            ${i18n.t('REGARDS')}<br>
-          </p>
-        </div>`,
-    }
-    await mailHelper.sendMail(mailOptions)
-    res.sendStatus(200)
-  } catch (err) {
-    try {
-      //
-      // Delete user in case of smtp failure
-      //
-      await Token.deleteMany({ user: user._id.toString() })
-      await user.deleteOne()
-    } catch (deleteErr) {
-      logger.error(`[user.signup] ${i18n.t('ERROR')} ${JSON.stringify(body)}`, deleteErr)
-    }
-    logger.error(`[user.signup] ${i18n.t('SMTP_ERROR')}`, err)
-    res.status(400).send(i18n.t('SMTP_ERROR') + err)
-  }
+  res.sendStatus(200)
 }
 
 /**
@@ -217,8 +175,22 @@ export const create = async (req: Request, res: Response) => {
     }
     // end of security check
 
-    body.verified = false
+    body.verified = true
     body.blacklisted = false
+
+    if (body.username) {
+      body.username = body.username.trim().toLowerCase()
+      if (!/^[a-z0-9._-]{3,}$/.test(body.username)) {
+        res.status(400).send('Invalid username')
+        return
+      }
+      if (await User.exists({ username: body.username })) {
+        res.status(409).send('Username already taken')
+        return
+      }
+    } else {
+      body.username = undefined
+    }
 
     if (body.password) {
       const { password } = body
@@ -444,7 +416,11 @@ export const create = async (req: Request, res: Response) => {
         </p>`,
     }
 
-    await mailHelper.sendMail(mailOptions)
+    try {
+      await mailHelper.sendMail(mailOptions)
+    } catch (mailErr) {
+      logger.error(`[user.create] ${i18n.t('SMTP_ERROR')}`, mailErr)
+    }
     res.sendStatus(200)
   } catch (err) {
     logger.error(`[user.create] ${i18n.t('ERROR')} ${JSON.stringify(body)}`, err)
@@ -669,13 +645,16 @@ export const signin = async (req: Request, res: Response) => {
     }
 
     const email = helper.trim(emailFromBody, ' ')
+    const type = req.params.type.toLowerCase() as bookcarsTypes.AppType
+    const usernameLogin = type === bookcarsTypes.AppType.Admin && !helper.isValidEmail(email)
 
-    if (!helper.isValidEmail(email)) {
+    if (!usernameLogin && !helper.isValidEmail(email)) {
       throw new Error('body.email is not valid')
     }
 
-    const user = await User.findOne({ email })
-    const type = req.params.type.toLowerCase() as bookcarsTypes.AppType
+    const user = usernameLogin
+      ? await User.findOne({ username: email.toLowerCase() })
+      : await User.findOne({ email: new RegExp(`^${escapeStringRegexp(email)}$`, 'i') })
 
     if (
       !password
@@ -1214,7 +1193,21 @@ export const update = async (req: Request, res: Response) => {
       supplierCarLimit,
       notifyAdminOnNewCar,
       blacklisted,
+      username,
     } = body
+
+    if (typeof username !== 'undefined' && sessionUser.type === bookcarsTypes.UserType.Admin) {
+      const newUsername = username.trim().toLowerCase()
+      if (newUsername && !/^[a-z0-9._-]{3,}$/.test(newUsername)) {
+        res.status(400).send('Invalid username')
+        return
+      }
+      if (newUsername && await User.exists({ username: newUsername, _id: { $ne: user._id } })) {
+        res.status(409).send('Username already taken')
+        return
+      }
+      user.username = newUsername || undefined
+    }
 
     if (fullName) {
       user.fullName = fullName
@@ -1230,7 +1223,14 @@ export const update = async (req: Request, res: Response) => {
     user.blacklisted = !!blacklisted
     // only admins can update user type
     if (type && sessionUser.type === bookcarsTypes.UserType.Admin) {
-      user.type = type as bookcarsTypes.UserType
+      const ownsCars = user.type === bookcarsTypes.UserType.Supplier
+        && type !== bookcarsTypes.UserType.Supplier
+        && await Car.exists({ supplier: user._id })
+      if (ownsCars) {
+        logger.warn(`[user.update] Kept supplier type for ${user._id}: it still owns cars`)
+      } else {
+        user.type = type as bookcarsTypes.UserType
+      }
     }
     if (typeof enableEmailNotifications !== 'undefined') {
       user.enableEmailNotifications = enableEmailNotifications
@@ -1371,6 +1371,7 @@ export const getUser = async (req: Request, res: Response) => {
     const user = await User.findById(id, {
       supplier: 1,
       email: 1,
+      username: 1,
       phone: 1,
       fullName: 1,
       verified: 1,
@@ -1628,6 +1629,11 @@ export const changePassword = async (req: Request, res: Response) => {
       const password = newPassword
       const passwordHash = await authHelper.hashPassword(password)
       user.password = passwordHash
+      if (sessionUserId !== user._id.toString()) {
+        user.verified = true
+        user.verifiedAt = user.verifiedAt || new Date()
+        user.active = true
+      }
       await user.save()
       res.sendStatus(200)
     }

@@ -62,6 +62,8 @@ const CreateUser = () => {
       type: '',
       fullName: '',
       email: '',
+      username: '',
+      password: '',
       phone: '',
       location: '',
       bio: '',
@@ -109,7 +111,7 @@ const CreateUser = () => {
   }
 
   const onLoad = (_user?: bookcarsTypes.User) => {
-    if (_user && _user.verified) {
+    if (_user) {
       const _admin = helper.admin(_user)
       setUser(_user)
       setAdmin(_admin)
@@ -159,11 +161,29 @@ const CreateUser = () => {
         return
       }
 
+      const username = data.username?.trim().toLowerCase() || ''
+      const password = data.password || ''
+      const isAdminType = type === bookcarsTypes.UserType.Admin
+
+      if ((isAdminType || username) && !/^[a-z0-9._-]{3,}$/.test(username)) {
+        setError('username', { message: strings.USERNAME_NOT_VALID })
+        setFocus('username')
+        return
+      }
+
+      if ((isAdminType || password) && password.length < 6) {
+        setError('password', { message: commonStrings.PASSWORD_ERROR })
+        setFocus('password')
+        return
+      }
+
       const language = UserService.getLanguage()
       const supplier = admin ? undefined : user._id
 
       const payload: bookcarsTypes.CreateUserPayload = {
         email: data.email,
+        username: username || undefined,
+        password: password || undefined,
         phone: data.phone || '',
         location: data.location || '',
         bio: data.bio || '',
@@ -193,6 +213,11 @@ const CreateUser = () => {
         setFormError(true)
       }
     } catch (err) {
+      if ((err as { response?: { status?: number } })?.response?.status === 409) {
+        setError('username', { message: strings.USERNAME_TAKEN })
+        setFocus('username')
+        return
+      }
       helper.error(err)
     }
   }
@@ -294,6 +319,50 @@ const CreateUser = () => {
                   {errors.email?.message || ''}
                 </FormHelperText>
               </FormControl>
+
+              {type && !driver && (
+                <>
+                  <FormControl fullWidth margin="dense">
+                    <InputLabel className={type === bookcarsTypes.UserType.Admin ? 'required' : ''}>{strings.USERNAME}</InputLabel>
+                    <Input
+                      {...register('username', {
+                        onChange: () => {
+                          if (errors.username) {
+                            clearErrors('username')
+                          }
+                        },
+                      })}
+                      type="text"
+                      autoComplete="off"
+                      required={type === bookcarsTypes.UserType.Admin}
+                      error={!!errors.username}
+                    />
+                    <FormHelperText error={!!errors.username}>
+                      {errors.username?.message || ''}
+                    </FormHelperText>
+                  </FormControl>
+
+                  <FormControl fullWidth margin="dense">
+                    <InputLabel className={type === bookcarsTypes.UserType.Admin ? 'required' : ''}>{commonStrings.PASSWORD}</InputLabel>
+                    <Input
+                      {...register('password', {
+                        onChange: () => {
+                          if (errors.password) {
+                            clearErrors('password')
+                          }
+                        },
+                      })}
+                      type="password"
+                      autoComplete="new-password"
+                      required={type === bookcarsTypes.UserType.Admin}
+                      error={!!errors.password}
+                    />
+                    <FormHelperText error={!!errors.password}>
+                      {errors.password?.message || ''}
+                    </FormHelperText>
+                  </FormControl>
+                </>
+              )}
 
               {driver && (
                 <>

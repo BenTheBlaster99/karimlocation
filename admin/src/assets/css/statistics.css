@@ -1,0 +1,91 @@
+.statistics {
+  padding: 24px;
+  overflow: auto;
+}
+
+.statistics h1 {
+  margin: 0 0 16px;
+  font-size: 22px;
+}
+
+.statistics-summary {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.statistics-card {
+  min-width: 220px;
+  padding: 16px 20px;
+  background: #fff;
+  border: 1px solid #e4e4e4;
+}
+
+.statistics-card span {
+  display: block;
+  color: #666;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.statistics-card strong {
+  font-size: 22px;
+}
+
+.period-switch {
+  margin-bottom: 16px;
+}
+
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 180px;
+  margin-bottom: 24px;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid #e4e4e4;
+  overflow-x: auto;
+}
+
+.bar-col {
+  flex: 1;
+  min-width: 28px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.bars.month .bar-col {
+  min-width: 18px;
+}
+
+.bar-track {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  background: #f3f3f3;
+}
+
+.bar-fill {
+  width: 100%;
+  background: #1976d2;
+}
+
+.bar-col span {
+  font-size: 11px;
+  color: #555;
+  text-transform: capitalize;
+}
+
+.statistics .empty {
+  margin-top: 12px;
+}
+
+.statistics table {
+  min-width: 760px;
+}

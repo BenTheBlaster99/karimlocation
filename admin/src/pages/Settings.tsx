@@ -5,8 +5,6 @@ import {
   InputLabel,
   FormHelperText,
   FormControl,
-  FormControlLabel,
-  Switch,
   Button,
   Paper
 } from '@mui/material'
@@ -18,13 +16,11 @@ import Layout from '@/components/Layout'
 import { strings as commonStrings } from '@/lang/common'
 import { strings } from '@/lang/settings'
 import * as UserService from '@/services/UserService'
-import * as BankDetailsService from '@/services/BankDetailsService'
 import * as SettingService from '@/services/SettingService'
 import Backdrop from '@/components/SimpleBackdrop'
 import Avatar from '@/components/Avatar'
 import * as helper from '@/utils/helper'
 import { useUserContext, UserContextType } from '@/context/UserContext'
-import BankDetailsForm from '@/components/BankDetailsForm'
 import { schema, FormFields } from '@/models/SettingsForm'
 import SettingForm from '@/components/SettingForm'
 
@@ -38,8 +34,6 @@ const Settings = () => {
   const [admin, setAdmin] = useState(false)
   const [visible, setVisible] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [enableEmailNotifications, setEnableEmailNotifications] = useState(false)
-  const [bankDetails, setBankDetails] = useState<bookcarsTypes.BankDetails | null>(null)
   const [settings, setSettings] = useState<bookcarsTypes.Setting | null>(null)
 
   const { register, handleSubmit, formState: { errors, isSubmitting }, clearErrors, setValue } = useForm<FormFields>({
@@ -47,34 +41,6 @@ const Settings = () => {
     mode: 'onSubmit'
   })
 
-
-  const handleEmailNotificationsChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    try {
-      if (user) {
-        setEnableEmailNotifications(e.target.checked)
-
-        const _user = bookcarsHelper.clone(user) as bookcarsTypes.User
-        _user.enableEmailNotifications = e.target.checked
-
-        const payload: bookcarsTypes.UpdateEmailNotificationsPayload = {
-          _id: user._id as string,
-          enableEmailNotifications: _user.enableEmailNotifications
-        }
-        const status = await UserService.updateEmailNotifications(payload)
-
-        if (status === 200) {
-          setUser(_user)
-          helper.info(strings.SETTINGS_UPDATED)
-        } else {
-          helper.error()
-        }
-      } else {
-        helper.error()
-      }
-    } catch (err) {
-      helper.error(err)
-    }
-  }
 
   const onBeforeUpload = () => {
     setLoading(true)
@@ -123,12 +89,6 @@ const Settings = () => {
       setValue('phone', _user.phone || '')
       setValue('location', _user.location || '')
       setValue('bio', _user.bio || '')
-      setEnableEmailNotifications(_user.enableEmailNotifications || false)
-
-      const bankDetails = await BankDetailsService.getBankDetails()
-      if (bankDetails) {
-        setBankDetails(bankDetails)
-      }
 
       const settings = await SettingService.getSettings()
       if (settings) {
@@ -203,32 +163,10 @@ const Settings = () => {
             </form>
           </Paper>
 
-          <Paper className="settings-net settings-net-wrapper" elevation={10}>
-            <h1 className="settings-form-title">{strings.NETWORK_SETTINGS}</h1>
-            <FormControl component="fieldset">
-              <FormControlLabel
-                control={(
-                  <Switch
-                    checked={enableEmailNotifications}
-                    onChange={handleEmailNotificationsChange}
-                  />
-                )}
-                label={strings.SETTINGS_EMAIL_NOTIFICATIONS}
-              />
-            </FormControl>
-          </Paper>
-
           {user.type === bookcarsTypes.UserType.Admin && (
             <SettingForm
               settings={settings}
               onSubmit={(data) => setSettings(data)}
-            />
-          )}
-
-          {user.type === bookcarsTypes.UserType.Admin && (
-            <BankDetailsForm
-              bankDetails={bankDetails}
-              onSubmit={(data) => setBankDetails(data)}
             />
           )}
         </div>

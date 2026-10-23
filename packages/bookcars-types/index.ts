@@ -147,6 +147,7 @@ export interface AdditionalDriver {
 export interface UpsertBookingPayload {
   booking: Booking
   additionalDriver?: AdditionalDriver
+  driverName?: string
 }
 
 export interface LocationName {
@@ -163,6 +164,7 @@ export interface UpsertLocationPayload {
   country: string
   longitude?: number
   latitude?: number
+  mapUrl?: string
   names: LocationName[]
   image?: string | null
   parkingSpots?: ParkingSpot[]
@@ -185,10 +187,17 @@ export interface UpdateSupplierPayload {
   blacklisted?: boolean
 }
 
+export interface CarUnit {
+  color?: string
+  licensePlate?: string
+}
+
 export interface CreateCarPayload {
   loggedUser: string
   name: string
   licensePlate?: string
+  color?: string
+  units?: CarUnit[]
   supplier: string
   minimumAge: number
   locations: string[]
@@ -220,6 +229,11 @@ export interface CreateCarPayload {
   doors: number
   fuelPolicy: string
   mileage: number
+  odometer?: number
+  lastOilChangeDate?: Date | string | null
+  lastOilChangeMileage?: number | null
+  lastServiceDate?: Date | string | null
+  lastServiceMileage?: number | null
   cancellation: number
   amendments: number
   theftProtection: number
@@ -290,6 +304,7 @@ export interface CreateUserPayload {
   birthDate?: number | Date
   language?: string
   password?: string
+  username?: string
   verified?: boolean
   blacklisted?: boolean
   payLater?: boolean
@@ -381,6 +396,7 @@ export interface User {
   supplier?: User | string
   fullName: string
   email?: string
+  username?: string
   phone?: string
   password?: string
   birthDate?: Date
@@ -433,6 +449,7 @@ export interface Location {
   country?: Country
   longitude?: number
   latitude?: number
+  mapUrl?: string
   name?: string
   values?: LocationValue[]
   image?: string
@@ -468,6 +485,7 @@ export interface Car {
   _id: string
   name: string
   licensePlate?: string
+  color?: string
   supplier: User
   minimumAge: number
   locations: Location[]
@@ -521,7 +539,7 @@ export interface Data<T> {
 }
 
 export interface GetBookingCarsPayload {
-  supplier: string
+  supplier?: string
   pickupLocation: string
 }
 

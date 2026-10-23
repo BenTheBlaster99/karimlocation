@@ -19,7 +19,8 @@ export const setCurrency = (currency: string) => {
  */
 export const getCurrency = () => {
   const currency = localStorage.getItem('bc-fe-currency')
-  if (currency && bookcarsHelper.checkCurrency(currency.toUpperCase())) {
+  const allowed = env.CURRENCIES.some((item) => item.code === currency?.toUpperCase())
+  if (currency && allowed && bookcarsHelper.checkCurrency(currency.toUpperCase())) {
     return currency.toUpperCase()
   }
   return env.BASE_CURRENCY
@@ -31,7 +32,7 @@ export const getCurrency = () => {
  * @param {string} code
  * @returns {string|undefined}
  */
-export const getCurrencySymbol = () => env.CURRENCIES.find((c) => c.code === getCurrency())?.symbol || '$'
+export const getCurrencySymbol = () => env.CURRENCIES.find((c) => c.code === getCurrency())?.symbol || 'DA'
 
 /**
  * Convert a price to a given currency.

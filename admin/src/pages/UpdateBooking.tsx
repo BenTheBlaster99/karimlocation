@@ -37,8 +37,6 @@ import Backdrop from '@/components/SimpleBackdrop'
 import NoMatch from './NoMatch'
 import Error from './Error'
 import CarList from '@/components/CarList'
-import SupplierSelectList from '@/components/SupplierSelectList'
-import UserSelectList from '@/components/UserSelectList'
 import LocationSelectList from '@/components/LocationSelectList'
 import CarSelectList from '@/components/CarSelectList'
 import StatusList from '@/components/StatusList'
@@ -184,6 +182,7 @@ const UpdateBooking = () => {
     defaultValues: {
       supplier: undefined,
       driver: undefined,
+      driverName: '',
       pickupLocation: undefined,
       dropOffLocation: undefined,
       car: undefined,
@@ -264,9 +263,9 @@ const UpdateBooking = () => {
 
       const _booking: bookcarsTypes.Booking = {
         _id: booking._id,
-        supplier: data.supplier?._id!,
+        supplier: (carObj?.supplier as bookcarsTypes.User)?._id || data.supplier?._id!,
         car: data.car?._id!,
-        driver: data.driver?._id,
+        driver: data.driver?._id || '',
         pickupLocation: data.pickupLocation?._id!,
         dropOffLocation: data.dropOffLocation?._id!,
         from: data.from!,
@@ -296,9 +295,10 @@ const UpdateBooking = () => {
         payload = {
           booking: _booking,
           additionalDriver: _additionalDriver,
-        }
+          driverName: data.driverName,
+        } as bookcarsTypes.UpsertBookingPayload
       } else {
-        payload = { booking: _booking }
+        payload = { booking: _booking, driverName: data.driverName } as bookcarsTypes.UpsertBookingPayload
       }
 
       const _status = await BookingService.update(payload)
@@ -364,6 +364,7 @@ const UpdateBooking = () => {
                 name: drv.fullName,
                 image: drv.avatar,
               })
+              setValue('driverName', drv.fullName || '')
               const pul = _booking.pickupLocation as bookcarsTypes.Location
               setValue('pickupLocation', {
                 _id: pul._id,
@@ -422,30 +423,17 @@ const UpdateBooking = () => {
         <div className="booking">
           <div className="col-1">
             <form onSubmit={handleSubmit(onSubmit)}>
-              {!isSupplier && (
-                <FormControl fullWidth margin="dense">
-                  <SupplierSelectList
-                    label={blStrings.SUPPLIER}
-                    required
-                    variant="standard"
-                    onChange={(values) => {
-                      const supplier = values.length > 0 ? values[0] as Option : undefined
-                      setValue('supplier', supplier)
-                      setValue('car', undefined)
-                      setCarObj(undefined)
-                    }}
-                    value={supplier}
-                  />
-                </FormControl>
-              )}
-
-              <UserSelectList
-                label={blStrings.DRIVER}
-                required
-                variant="standard"
-                onChange={(values) => setValue('driver', values.length > 0 ? values[0] as Option : undefined)}
-                value={driver}
-              />
+              <FormControl fullWidth margin="dense">
+                <InputLabel className="required">{blStrings.DRIVER}</InputLabel>
+                <Input
+                  type="text"
+                  {...register('driverName')}
+                  required
+                  autoComplete="off"
+                  error={!!errors.driverName}
+                />
+                {errors.driverName && <FormHelperText error>{errors.driverName.message}</FormHelperText>}
+              </FormControl>
 
               <FormControl fullWidth margin="dense">
                 <LocationSelectList
@@ -469,7 +457,6 @@ const UpdateBooking = () => {
 
               <CarSelectList
                 label={blStrings.CAR}
-                supplier={supplier?._id!}
                 pickupLocation={pickupLocation?._id!}
                 value={carObj}
                 onChange={async (values) => {

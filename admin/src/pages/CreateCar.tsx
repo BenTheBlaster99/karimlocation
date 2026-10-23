@@ -21,11 +21,11 @@ import { strings as commonStrings } from '@/lang/common'
 import { strings as csStrings } from '@/lang/cars'
 import { strings } from '@/lang/create-car'
 import * as CarService from '@/services/CarService'
+import * as SupplierService from '@/services/SupplierService'
 import * as helper from '@/utils/helper'
 import Error from '@/components/Error'
 import Backdrop from '@/components/SimpleBackdrop'
 import Avatar from '@/components/Avatar'
-import SupplierSelectList from '@/components/SupplierSelectList'
 import LocationSelectList from '@/components/LocationSelectList'
 import CarTypeList from '@/components/CarTypeList'
 import GearboxList from '@/components/GearboxList'
@@ -45,7 +45,7 @@ const CreateCar = () => {
   const navigate = useNavigate()
   const { user } = useUserContext() as UserContextType
 
-  const [isSupplier, setIsSupplier] = useState(false)
+  const [units, setUnits] = useState<{ color: string, licensePlate: string }[]>([])
   const [loading, setLoading] = useState(false)
   const [visible, setVisible] = useState(false)
   const [imageError, setImageError] = useState(false)
@@ -68,6 +68,7 @@ const CreateCar = () => {
     defaultValues: {
       name: '',
       licensePlate: '',
+      color: '',
       supplier: undefined,
       minimumAge: String(env.MINIMUM_AGE),
       locations: [],
@@ -92,6 +93,7 @@ const CreateCar = () => {
       doors: '',
       aircon: false,
       mileage: '',
+      odometer: '',
       fuelPolicy: '',
       cancellation: '',
       amendments: '',
@@ -170,13 +172,16 @@ const CreateCar = () => {
         }
       }
 
-      const payload: bookcarsTypes.CreateCarPayload = {
+      const payload = {
         loggedUser: user!._id!,
         name: data.name,
         licensePlate: data.licensePlate || '',
+        color: data.color || '',
+        units: units.filter((unit) => unit.licensePlate.trim()),
         supplier: data.supplier?._id!,
         minimumAge: Number.parseInt(data.minimumAge, 10),
-        locations: data.locations.map((l) => l._id),
+        locations: [],
+        odometer: data.odometer ? Number(data.odometer) : undefined,
         dailyPrice: Number(data.dailyPrice),
         discountedDailyPrice: getPrice(data.discountedDailyPrice || ''),
         hourlyPrice: getPrice(data.hourlyPrice || ''),
@@ -212,7 +217,7 @@ const CreateCar = () => {
         co2: data.co2 ? Number(data.co2) : undefined,
         isDateBasedPrice: data.isDateBasedPrice,
         dateBasedPrices: data.dateBasedPrices || [],
-      }
+      } as bookcarsTypes.CreateCarPayload
 
       const car = await CarService.create(payload)
 
@@ -233,8 +238,8 @@ const CreateCar = () => {
     }
   }
 
-  const onLoad = (user?: bookcarsTypes.User) => {
-    if (user && user.verified) {
+  const onLoad = async (user?: bookcarsTypes.User) => {
+    if (user) {
       setVisible(true)
 
       if (user.type === bookcarsTypes.RecordType.Supplier) {
@@ -243,7 +248,16 @@ const CreateCar = () => {
           name: user.fullName,
           image: user.avatar,
         } as Supplier)
-        setIsSupplier(true)
+      } else {
+        const suppliers = await SupplierService.getAllSuppliers()
+        const fleet = suppliers[0]
+        if (fleet?._id) {
+          setValue('supplier', {
+            _id: fleet._id,
+            name: fleet.fullName,
+            image: fleet.avatar,
+          })
+        }
       }
     }
   }
@@ -298,16 +312,65 @@ const CreateCar = () => {
               />
             </FormControl>
 
-            {!isSupplier && (
-              <FormControl fullWidth margin="dense">
-                <SupplierSelectList
-                  label={strings.SUPPLIER}
-                  required
-                  variant="standard"
-                  onChange={(values) => setValue('supplier', values.length > 0 ? values[0] as Supplier : undefined)}
-                />
-              </FormControl>
-            )}
+            <FormControl fullWidth margin="dense">
+              <InputLabel>{strings.COLOR}</InputLabel>
+              <Input
+                type="text"
+                {...register('color')}
+                autoComplete="off"
+              />
+            </FormControl>
+
+            <div className="info">
+              <InfoIcon />
+              <span>{strings.SAME_MODEL}</span>
+            </div>
+            {units.map((unit, index) => (
+              <div key={`unit-${index}`}>
+                <FormControl fullWidth margin="dense">
+                  <InputLabel>{strings.COLOR}</InputLabel>
+                  <Input
+                    type="text"
+                    value={unit.color}
+                    autoComplete="off"
+                    onChange={(e) => {
+                      const next = [...units]
+                      next[index] = { ...unit, color: e.target.value }
+                      setUnits(next)
+                    }}
+                  />
+                </FormControl>
+                <FormControl fullWidth margin="dense">
+                  <InputLabel>{strings.LICENSE_PLATE}</InputLabel>
+                  <Input
+                    type="text"
+                    value={unit.licensePlate}
+                    autoComplete="off"
+                    onChange={(e) => {
+                      const next = [...units]
+                      next[index] = { ...unit, licensePlate: e.target.value }
+                      setUnits(next)
+                    }}
+                  />
+                </FormControl>
+                <Button
+                  variant="contained"
+                  className="btn-secondary btn-margin-bottom"
+                  size="small"
+                  onClick={() => setUnits(units.filter((_, unitIndex) => unitIndex !== index))}
+                >
+                  {commonStrings.DELETE}
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="contained"
+              className="btn-primary btn-margin-bottom"
+              size="small"
+              onClick={() => setUnits([...units, { color: '', licensePlate: '' }])}
+            >
+              {strings.ADD_UNIT}
+            </Button>
 
             <FormControl fullWidth margin="dense">
               <InputLabel className="required">{strings.MINIMUM_AGE}</InputLabel>
@@ -326,16 +389,6 @@ const CreateCar = () => {
               {errors.minimumAge && (
                 <FormHelperText error>{errors.minimumAge.message}</FormHelperText>
               )}
-            </FormControl>
-
-            <FormControl fullWidth margin="dense">
-              <LocationSelectList
-                label={strings.LOCATIONS}
-                multiple
-                required
-                variant="standard"
-                onChange={(values) => setValue('locations', values as Option[])}
-              />
             </FormControl>
 
             <FormControl fullWidth margin="dense">
@@ -595,22 +648,6 @@ const CreateCar = () => {
               />
             </FormControl>
 
-            <FormControl fullWidth margin="dense">
-              <TextField
-                label={strings.CO2}
-                {...register('co2')}
-                variant="standard"
-                autoComplete="off"
-                error={!!errors.co2}
-                helperText={errors.co2?.message}
-                onChange={() => {
-                  if (errors.co2) {
-                    clearErrors('co2')
-                  }
-                }}
-              />
-            </FormControl>
-
             <FormControl fullWidth margin="dense" className="checkbox-fc">
               <FormControlLabel
                 control={
@@ -739,6 +776,22 @@ const CreateCar = () => {
 
             <FormControl fullWidth margin="dense">
               <TextField
+                label={strings.ODOMETER}
+                {...register('odometer')}
+                variant="standard"
+                autoComplete="off"
+                error={!!errors.odometer}
+                helperText={errors.odometer?.message}
+                onChange={() => {
+                  if (errors.odometer) {
+                    clearErrors('odometer')
+                  }
+                }}
+              />
+            </FormControl>
+
+            <FormControl fullWidth margin="dense">
+              <TextField
                 label={`${csStrings.MILEAGE} (${csStrings.MILEAGE_UNIT})`}
                 {...register('mileage')}
                 variant="standard"
@@ -748,86 +801,6 @@ const CreateCar = () => {
                 onChange={() => {
                   if (errors.mileage) {
                     clearErrors('mileage')
-                  }
-                }}
-              />
-            </FormControl>
-
-            <FormControl fullWidth margin="dense">
-              <TextField
-                label={`${csStrings.CANCELLATION} (${commonStrings.CURRENCY})`}
-                {...register('cancellation')}
-                variant="standard"
-                autoComplete="off"
-                error={!!errors.cancellation}
-                helperText={errors.cancellation?.message}
-                onChange={() => {
-                  if (errors.cancellation) {
-                    clearErrors('cancellation')
-                  }
-                }}
-              />
-            </FormControl>
-
-            <FormControl fullWidth margin="dense">
-              <TextField
-                label={`${csStrings.AMENDMENTS} (${commonStrings.CURRENCY})`}
-                {...register('amendments')}
-                variant="standard"
-                autoComplete="off"
-                error={!!errors.amendments}
-                helperText={errors.amendments?.message}
-                onChange={() => {
-                  if (errors.amendments) {
-                    clearErrors('amendments')
-                  }
-                }}
-              />
-            </FormControl>
-
-            <FormControl fullWidth margin="dense">
-              <TextField
-                label={`${csStrings.THEFT_PROTECTION} (${csStrings.CAR_CURRENCY})`}
-                {...register('theftProtection')}
-                variant="standard"
-                autoComplete="off"
-                error={!!errors.theftProtection}
-                helperText={errors.theftProtection?.message}
-                onChange={() => {
-                  if (errors.theftProtection) {
-                    clearErrors('theftProtection')
-                  }
-                }}
-              />
-            </FormControl>
-
-            <FormControl fullWidth margin="dense">
-              <TextField
-                label={`${csStrings.COLLISION_DAMAGE_WAVER} (${csStrings.CAR_CURRENCY})`}
-                {...register('collisionDamageWaiver')}
-                variant="standard"
-                autoComplete="off"
-                error={!!errors.collisionDamageWaiver}
-                helperText={errors.collisionDamageWaiver?.message}
-                onChange={() => {
-                  if (errors.collisionDamageWaiver) {
-                    clearErrors('collisionDamageWaiver')
-                  }
-                }}
-              />
-            </FormControl>
-
-            <FormControl fullWidth margin="dense">
-              <TextField
-                label={`${csStrings.FULL_INSURANCE} (${csStrings.CAR_CURRENCY})`}
-                {...register('fullInsurance')}
-                variant="standard"
-                autoComplete="off"
-                error={!!errors.fullInsurance}
-                helperText={errors.fullInsurance?.message}
-                onChange={() => {
-                  if (errors.fullInsurance) {
-                    clearErrors('fullInsurance')
                   }
                 }}
               />

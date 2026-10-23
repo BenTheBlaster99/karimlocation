@@ -212,3 +212,25 @@ export const getBookingCars = (keyword: string, data: bookcarsTypes.GetBookingCa
       { withCredentials: true }
     )
     .then((res) => res.data)
+
+export interface CarMaintenance {
+  _id: string
+  name: string
+  licensePlate?: string
+  color?: string
+  odometer?: number | string
+  lastOilChangeDate?: string
+  lastOilChangeMileage?: number | string
+  lastServiceDate?: string
+  lastServiceMileage?: number | string
+}
+
+export const getMaintenance = (): Promise<CarMaintenance[]> =>
+  axiosInstance
+    .get('/api/car-maintenance', { withCredentials: true })
+    .then((res) => res.data)
+
+export const updateMaintenance = (data: CarMaintenance): Promise<number> =>
+  axiosInstance
+    .put('/api/update-car-maintenance', data, { withCredentials: true })
+    .then((res) => res.status)

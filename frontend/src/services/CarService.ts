@@ -23,6 +23,11 @@ export const getCars = (data: bookcarsTypes.GetCarsPayload, page: number, size: 
  * @param {string} id
  * @returns {Promise<bookcarsTypes.Car>}
  */
+export const getHomeCars = (): Promise<bookcarsTypes.Car[]> =>
+  axiosInstance
+    .get('/api/home-cars')
+    .then((res) => res.data)
+
 export const getCar = (id: string): Promise<bookcarsTypes.Car> =>
   axiosInstance
     .get(

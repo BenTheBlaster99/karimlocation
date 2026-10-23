@@ -129,7 +129,19 @@ const SearchForm = ({
         } else {
           setValue('sameLocation', dropOffLocationId === __pickupLocation)
         }
+        return
       }
+
+      const locations = await LocationService.getLocationsWithPosition()
+      const first = locations?.[0]
+      if (!first?._id) {
+        return
+      }
+      const location = await LocationService.getLocation(first._id) as LocationField
+      setValue('pickupLocation', location)
+      setValue('dropOffLocation', location)
+      setPickupLocationId(first._id)
+      setDropOffLocationId(first._id)
     }
     init()
   }, [__pickupLocation]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -308,20 +320,6 @@ const SearchForm = ({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="home-search-form">
-      <FormControl className="pickup-location">
-        <LocationSelectList
-          {...register('pickupLocation')}
-          label={commonStrings.PICK_UP_LOCATION}
-          hidePopupIcon
-          // customOpen={env.isMobile}
-          // init={!env.isMobile}
-          init
-          required
-          variant="outlined"
-          value={pickupLocation as bookcarsTypes.Location}
-          onChange={handlePickupLocationChange}
-        />
-      </FormControl>
       <FormControl fullWidth className="from">
         <Controller
           name="from"
@@ -366,7 +364,7 @@ const SearchForm = ({
         />
         <FormHelperText error={!!errors.to}>{errors.to?.message}</FormHelperText>
       </FormControl>
-      <Button type="submit" variant="contained" className="btn-search" disabled={isSubmitting}>
+      <Button type="submit" variant="contained" className="btn-search" disabled={isSubmitting || !pickupLocationId}>
         {commonStrings.SEARCH}
       </Button>
       {onCancel && (
@@ -381,25 +379,6 @@ const SearchForm = ({
           {commonStrings.CANCEL}
         </Button>
       )}
-      {!sameLocation && (
-        <FormControl className="drop-off-location">
-          <LocationSelectList
-            {...register('dropOffLocation')}
-            label={commonStrings.DROP_OFF_LOCATION}
-            hidePopupIcon
-            // customOpen={env.isMobile}
-            // init={!env.isMobile}
-            init
-            value={dropOffLocation as bookcarsTypes.Location}
-            required
-            variant="outlined"
-            onChange={handleDropOffLocationChange}
-          />
-        </FormControl>
-      )}
-      <FormControl className="chk-same-location">
-        <FormControlLabel control={<Checkbox checked={sameLocation} onChange={handleSameLocationChange} />} label={strings.DROP_OFF} />
-      </FormControl>
     </form>
   )
 }

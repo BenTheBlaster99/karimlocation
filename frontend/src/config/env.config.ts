@@ -37,20 +37,8 @@ type Currency = { code: string, symbol: string }
  */
 const CURRENCIES: Currency[] = [
   {
-    code: 'USD',
-    symbol: '$',
-  },
-  {
-    code: 'EUR',
-    symbol: '€',
-  },
-  {
-    code: 'GBP',
-    symbol: '£',
-  },
-  {
-    code: 'AUD',
-    symbol: '$',
+    code: 'DZD',
+    symbol: 'DA',
   },
 ]
 
@@ -72,14 +60,14 @@ const env = {
   isProduction: import.meta.env.VITE_NODE_ENV === 'production',
   isSafari: /^((?!chrome|android).)*safari/i.test(navigator.userAgent),
 
-  WEBSITE_NAME: String(import.meta.env.VITE_BC_WEBSITE_NAME || 'BookCars'),
+  WEBSITE_NAME: String(import.meta.env.VITE_BC_WEBSITE_NAME || 'Karim Location'),
 
   APP_TYPE: bookcarsTypes.AppType.Frontend,
   API_HOST: String(import.meta.env.VITE_BC_API_HOST),
   LANGUAGES: LANGUAGES.map((l) => l.code),
   _LANGUAGES: LANGUAGES,
   DEFAULT_LANGUAGE: String(import.meta.env.VITE_BC_DEFAULT_LANGUAGE || 'en'),
-  BASE_CURRENCY: String(import.meta.env.VITE_BC_BASE_CURRENCY || 'USD'),
+  BASE_CURRENCY: String(import.meta.env.VITE_BC_BASE_CURRENCY || 'DZD'),
   CURRENCIES,
   PAGE_SIZE: Number.parseInt(String(import.meta.env.VITE_BC_PAGE_SIZE), 10) || 30,
   CARS_PAGE_SIZE: Number.parseInt(String(import.meta.env.VITE_BC_CARS_PAGE_SIZE), 10) || 15,
@@ -130,9 +118,9 @@ const env = {
    */
   MIN_LOCATIONS: Number.parseInt(String(import.meta.env.VITE_BC_MIN_LOCATIONS), 10) || 4,
   HIDE_SUPPLIERS: (import.meta.env.VITE_BC_HIDE_SUPPLIERS && import.meta.env.VITE_BC_HIDE_SUPPLIERS.toLowerCase()) === 'true',
-  MAP_LATITUDE: Number(String(import.meta.env.VITE_BC_MAP_LATITUDE || '34.0268755')),
-  MAP_LONGITUDE: Number(String(import.meta.env.VITE_BC_MAP_LONGITUDE || '1.6528399999999976')),
-  MAP_ZOOM: Number(String(import.meta.env.VITE_BC_MAP_ZOOM || '5')),
+  MAP_LATITUDE: Number(String(import.meta.env.VITE_BC_MAP_LATITUDE || '36.7224209')),
+  MAP_LONGITUDE: Number(String(import.meta.env.VITE_BC_MAP_LONGITUDE || '3.144768')),
+  MAP_ZOOM: Number(String(import.meta.env.VITE_BC_MAP_ZOOM || '14')),
   PASSWORD_MIN_LENGTH: 6,
 }
 

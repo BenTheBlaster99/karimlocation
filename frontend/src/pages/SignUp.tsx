@@ -221,13 +221,14 @@ const SignUp = () => {
                     <tr>
                       <td aria-label="tos">
                         <Checkbox
-                          {...register('tos')}
+                          {...register('tos', {
+                            onChange: () => {
+                              if (errors.tos) {
+                                clearErrors('tos')
+                              }
+                            },
+                          })}
                           color="primary"
-                          onChange={() => {
-                            if (errors.tos) {
-                              clearErrors('tos')
-                            }
-                          }}
                         />
                       </td>
                       <td>

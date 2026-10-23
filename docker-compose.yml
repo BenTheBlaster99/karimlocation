@@ -7,8 +7,8 @@ services:
       # Provide your credentials here
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: admin
-    ports:
-      - 27018:27017
+      # Kernel 6.19+ / 7.x refuses MongoDB 8 unless glibc rseq stays enabled.
+      GLIBC_TUNABLES: glibc.pthread.rseq=1
     volumes:
       - mongodb_data:/data/db
       - mongodb_config:/data/configdb
@@ -16,8 +16,6 @@ services:
   mongo-express:
     image: mongo-express:latest
     restart: always
-    ports:
-      - 8084:8081
     environment:
       ME_CONFIG_MONGODB_URL: mongodb://admin:admin@mongo:27017/
       ME_CONFIG_BASICAUTH_USERNAME: admin

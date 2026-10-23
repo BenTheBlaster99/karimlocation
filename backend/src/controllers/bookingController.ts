@@ -31,9 +31,43 @@ import stripeAPI from '../payment/stripe'
  * @param {Response} res
  * @returns {unknown}
  */
+const resolveDriverId = async (name: string) => {
+  const fullName = name.trim()
+  const existing = await User.findOne({ fullName, type: bookcarsTypes.UserType.User })
+  if (existing) {
+    return existing._id
+  }
+
+  const slug = fullName.toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.|\.$/g, '') || 'driver'
+  const driver = new User({
+    fullName,
+    email: `${slug}.${Date.now()}@example.com`,
+    type: bookcarsTypes.UserType.User,
+    language: env.DEFAULT_LANGUAGE,
+    active: true,
+    verified: true,
+    enableEmailNotifications: false,
+  })
+  await driver.save()
+  return driver._id
+}
+
+const applyDriverName = async (body: bookcarsTypes.UpsertBookingPayload) => {
+  if (body.driverName?.trim()) {
+    body.booking.driver = (await resolveDriverId(body.driverName)).toString()
+  }
+  if (!body.booking.supplier && body.booking.car) {
+    const car = await Car.findById(body.booking.car)
+    if (car?.supplier) {
+      body.booking.supplier = car.supplier.toString()
+    }
+  }
+}
+
 export const create = async (req: Request, res: Response) => {
   try {
     const { body }: { body: bookcarsTypes.UpsertBookingPayload } = req
+    await applyDriverName(body)
     if (body.booking.additionalDriver) {
       const additionalDriver = new AdditionalDriver(body.additionalDriver)
       await additionalDriver.save()
@@ -95,7 +129,11 @@ export const notify = async (driver: env.User, bookingId: string, user: env.User
     </p>`,
     }
 
-    await mailHelper.sendMail(mailOptions)
+    try {
+      await mailHelper.sendMail(mailOptions)
+    } catch (err) {
+      logger.error('[booking.notify] mail failed', err)
+    }
   }
 }
 
@@ -176,7 +214,11 @@ export const confirm = async (user: env.User, supplier: env.User, booking: env.B
     }
   }
 
-  await mailHelper.sendMail(mailOptions)
+  try {
+    await mailHelper.sendMail(mailOptions)
+  } catch (err) {
+    logger.error('[booking.confirm] mail failed', err)
+  }
 
   return true
 }
@@ -206,6 +248,9 @@ export const checkout = async (req: Request, res: Response) => {
     }
 
     if (driver) {
+      if (!driver.email) {
+        driver.email = `client.${Date.now()}@example.com`
+      }
       const { license } = driver
       if (supplier.licenseRequired && !license) {
         throw new Error("Driver's license required")
@@ -213,7 +258,7 @@ export const checkout = async (req: Request, res: Response) => {
       if (supplier.licenseRequired && !(await helper.pathExists(path.join(env.CDN_TEMP_LICENSES, license!)))) {
         throw new Error("Driver's license file not found")
       }
-      driver.verified = false
+      driver.verified = true
       driver.blacklisted = false
       driver.type = bookcarsTypes.UserType.User
       driver.license = null
@@ -259,7 +304,11 @@ export const checkout = async (req: Request, res: Response) => {
         ${i18n.t('REGARDS')}<br>
         </p>`,
       }
-      await mailHelper.sendMail(mailOptions)
+      try {
+        await mailHelper.sendMail(mailOptions)
+      } catch (mailErr) {
+        logger.error('[booking.checkout] activation mail failed', mailErr)
+      }
 
       body.booking.driver = user._id.toString()
     } else {
@@ -513,6 +562,7 @@ const notifyDriver = async (booking: env.Booking) => {
 export const update = async (req: Request, res: Response) => {
   try {
     const { body }: { body: bookcarsTypes.UpsertBookingPayload } = req
+    await applyDriverName(body)
     const booking = await Booking.findById(body.booking._id)
 
     if (booking) {
@@ -611,8 +661,11 @@ export const update = async (req: Request, res: Response) => {
       await booking.save()
 
       if (previousStatus !== status) {
-        // notify driver
-        await notifyDriver(booking)
+        try {
+          await notifyDriver(booking)
+        } catch (err) {
+          logger.error('[booking.update] notify failed', err)
+        }
       }
 
       res.json(booking)
@@ -649,13 +702,62 @@ export const updateStatus = async (req: Request, res: Response) => {
 
     for (const booking of bookings) {
       if (booking.status !== status) {
-        await notifyDriver(booking)
+        try {
+          await notifyDriver(booking)
+        } catch (err) {
+          logger.error('[booking.updateStatus] notify failed', err)
+        }
       }
     }
 
     res.sendStatus(200)
   } catch (err) {
     logger.error(`[booking.updateStatus] ${i18n.t('ERROR')} ${JSON.stringify(req.body)}`, err)
+    res.status(400).send(i18n.t('ERROR') + err)
+  }
+}
+
+/**
+ * Rentals marked paid in full, with their prices added together.
+ */
+export const getRevenue = async (req: Request, res: Response) => {
+  try {
+    const sessionUser = await User.findById(req.user?._id)
+    if (!sessionUser || (sessionUser.type !== bookcarsTypes.UserType.Admin && sessionUser.type !== bookcarsTypes.UserType.Supplier)) {
+      res.sendStatus(403)
+      return
+    }
+
+    const filter: mongoose.QueryFilter<env.Booking> = { status: bookcarsTypes.BookingStatus.PaidInFull }
+    if (sessionUser.type === bookcarsTypes.UserType.Supplier) {
+      filter.supplier = sessionUser._id
+    }
+
+    const bookings = await Booking.find(filter)
+      .populate('car', 'name licensePlate')
+      .populate('driver', 'fullName')
+      .sort({ updatedAt: -1 })
+      .lean()
+
+    const rows = bookings.map((booking) => {
+      const car = booking.car as { name?: string, licensePlate?: string } | null
+      const driver = booking.driver as { fullName?: string } | null
+      return {
+        _id: booking._id,
+        car: car?.name || '',
+        licensePlate: car?.licensePlate || '',
+        driver: driver?.fullName || '',
+        from: booking.from,
+        to: booking.to,
+        paidAt: (booking as { updatedAt?: Date }).updatedAt || booking.to,
+        price: booking.price || 0,
+      }
+    })
+    const total = rows.reduce((sum, row) => sum + Number(row.price || 0), 0)
+
+    res.json({ total, count: rows.length, bookings: rows })
+  } catch (err) {
+    logger.error(`[booking.getRevenue] ${i18n.t('ERROR')}`, err)
     res.status(400).send(i18n.t('ERROR') + err)
   }
 }
@@ -900,12 +1002,23 @@ export const getBookings = async (req: Request, res: Response) => {
           { to: { $gte: dateBetweenStart } },
         ],
       })
-    } else if (from) {
-      $match.$and!.push({ from: { $gte: from } }) // $from >= from
-    }
+    } else if (from || to) {
+      const rangeStart = from ? new Date(from) : null
+      const rangeEnd = to ? new Date(to) : null
+      if (rangeStart) {
+        rangeStart.setHours(0, 0, 0, 0)
+      }
+      if (rangeEnd) {
+        rangeEnd.setHours(23, 59, 59, 999)
+      }
 
-    if (to) {
-      $match.$and!.push({ to: { $lte: to } })// $to < to
+      // Keep a booking when its rental overlaps the chosen dates.
+      if (rangeEnd) {
+        $match.$and!.push({ from: { $lte: rangeEnd } })
+      }
+      if (rangeStart) {
+        $match.$and!.push({ to: { $gte: rangeStart } })
+      }
     }
     if (pickupLocation) {
       $match.$and!.push({ 'pickupLocation._id': { $eq: new mongoose.Types.ObjectId(pickupLocation) } })

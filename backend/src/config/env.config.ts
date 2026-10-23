@@ -1,3 +1,4 @@
+import net from 'node:net'
 import process from 'node:process'
 import { Document, Types } from 'mongoose'
 import { CookieOptions } from 'express'
@@ -156,7 +157,14 @@ export const AUTH_COOKIE_DOMAIN = __env__('BC_AUTH_COOKIE_DOMAIN', false, 'local
  *
  * @type {CookieOptions}
  */
-export const COOKIE_OPTIONS: CookieOptions = { httpOnly: true, secure: HTTPS, signed: true, sameSite: 'strict', domain: AUTH_COOKIE_DOMAIN }
+const cookieDomain = net.isIP(AUTH_COOKIE_DOMAIN) ? undefined : AUTH_COOKIE_DOMAIN
+export const COOKIE_OPTIONS: CookieOptions = {
+  httpOnly: true,
+  secure: HTTPS,
+  signed: true,
+  sameSite: 'strict',
+  ...(cookieDomain ? { domain: cookieDomain } : {}),
+}
 
 /**
  * frontend authentication cookie name.
@@ -525,6 +533,7 @@ export interface User extends Document {
   supplier?: Types.ObjectId
   fullName: string
   email: string
+  username?: string
   phone?: string
   password?: string
   birthDate?: Date
@@ -658,6 +667,7 @@ export interface DateBasedPrice extends Document {
 export interface Car extends Document {
   name: string
   licensePlate?: string
+  color?: string
   supplier: Types.ObjectId
   minimumAge: number
   locations: Types.ObjectId[]
@@ -688,6 +698,11 @@ export interface Car extends Document {
   doors: number
   fuelPolicy: bookcarsTypes.FuelPolicy
   mileage: number
+  odometer?: number
+  lastOilChangeDate?: Date
+  lastOilChangeMileage?: number
+  lastServiceDate?: Date
+  lastServiceMileage?: number
   cancellation: number
   amendments: number
   theftProtection: number
@@ -814,6 +829,7 @@ export interface Location extends Document {
   country: Types.ObjectId
   longitude?: number
   latitude?: number
+  mapUrl?: string
   values: Types.ObjectId[]
   name?: string
   image?: string | null

@@ -523,15 +523,17 @@ const BookingList = ({
                     <span className="booking-detail-title">{commonStrings.DROP_OFF_LOCATION}</span>
                     <div className="booking-detail-value">{(booking.dropOffLocation as bookcarsTypes.Location).name}</div>
                   </div>
-                  <div className="booking-detail" style={{ height: bookingDetailHeight }}>
-                    <span className="booking-detail-title">{commonStrings.SUPPLIER}</span>
-                    <div className="booking-detail-value">
-                      <div className="car-supplier">
-                        <img src={bookcarsHelper.joinURL(env.CDN_USERS, (booking.supplier as bookcarsTypes.User).avatar)} alt={(booking.supplier as bookcarsTypes.User).fullName} />
-                        <span className="car-supplier-name">{(booking.supplier as bookcarsTypes.User).fullName}</span>
+                  {!hideSupplierColumn && (
+                    <div className="booking-detail" style={{ height: bookingDetailHeight }}>
+                      <span className="booking-detail-title">{commonStrings.SUPPLIER}</span>
+                      <div className="booking-detail-value">
+                        <div className="car-supplier">
+                          <img src={bookcarsHelper.joinURL(env.CDN_USERS, (booking.supplier as bookcarsTypes.User).avatar)} alt={(booking.supplier as bookcarsTypes.User).fullName} />
+                          <span className="car-supplier-name">{(booking.supplier as bookcarsTypes.User).fullName}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   {(booking.cancellation || booking.amendments || booking.collisionDamageWaiver || booking.theftProtection || booking.fullInsurance || booking.additionalDriver) && (
                     <>

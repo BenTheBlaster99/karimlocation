@@ -1,84 +1,124 @@
 div.checkout-status {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  padding: 24px 16px 48px;
 }
 
-div.checkout-status div.details {
+.confirmation-actions {
+  width: min(820px, 100%);
   display: flex;
-  flex-direction: row;
-  margin-top: 20px;
-  background-color: #fff;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
-div.checkout-status div.details div.status-details-container {
-  display: flex;
-  flex-direction: column;
-  padding: 20px;
-}
-
-div.checkout-status div.details div.status-info {
-  display: flex;
-  justify-content: flex-start;
-  text-align: left;
-  width: 100%;
-  margin-bottom: 20px;
-}
-
-div.checkout-status div.details div.status-info span {
-  color: #444;
-  display: inline-block;
-  font-size: 17px;
-  font-weight: 700;
-  margin-left: 5px;
-}
-
-div.checkout-status div.details div.status-details {
-  display: table;
+.confirmation-actions p {
+  margin: 0;
   color: #333;
+}
+
+.confirmation-report {
+  width: min(820px, 100%);
+  background: #fff;
+  color: #111;
+  border: 1px solid #d7d7d7;
+  padding: 36px 40px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 8%);
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 2px solid #111;
+  padding-bottom: 16px;
+  margin-bottom: 8px;
+}
+
+.report-brand {
+  margin: 0;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.confirmation-report h1 {
+  margin: 4px 0 0;
+  font-size: 28px;
+}
+
+.report-meta {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 4px 12px;
+  text-align: right;
+  align-content: start;
+  font-size: 14px;
+}
+
+.confirmation-report section {
+  padding: 14px 0;
+  border-bottom: 1px solid #e4e4e4;
+}
+
+.confirmation-report h2 {
+  margin: 0 0 8px;
   font-size: 15px;
-  padding: 0 40px 20px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-div.checkout-status div.details div.status-details div.status-detail span.status-detail-title,
-div.checkout-status div.details div.status-details div.status-detail-value {
-  display: table-cell;
-}
-
-div.checkout-status div.details div.status-details div.status-detail div.status-detail-value {
-  color: rgb(0 0 0 / 55%);
-  word-break: break-word;
-  vertical-align: middle;
-}
-
-div.checkout-status div.details div.status-details div.status-detail span.status-detail-title {
-  font-weight: 700;
-  width: 170px;
-}
-
-div.checkout-status div.details div.status-details div.status-detail div.status-price {
-  font-size: 17px;
-  font-weight: 700;
-  color: #333;
-}
-
-div.checkout-status div.details div.side-panel {
-  width: 100%;
+.report-row {
   display: flex;
-  flex-direction: column;
-  /* background-color: #1a1a1a; */
-  background-color: #121212;
-  color: #fff;
-  padding: 40px;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 4px 0;
+  font-size: 15px;
 }
 
+.report-row span {
+  color: #555;
+}
 
-@media only screen and (width <=960px) {
-  div.checkout-status div.details {
+.report-note {
+  margin: 18px 0 0;
+  font-size: 14px;
+}
+
+@media only screen and (width <= 700px) {
+  .confirmation-report {
+    padding: 24px 16px;
+  }
+
+  .report-header,
+  .confirmation-actions,
+  .report-row {
     flex-direction: column;
   }
 
-  div.checkout-status div.details div.mobile-app div.wrapper {
-    flex-direction: column;
-    padding: 60px 10px;
+  .report-meta {
+    text-align: left;
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .confirmation-report,
+  .confirmation-report * {
+    visibility: visible;
+  }
+
+  .confirmation-report {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    border: none;
+    box-shadow: none;
   }
 }

@@ -89,7 +89,7 @@ const User = () => {
   }
 
   const onLoad = async (_loggedUser?: bookcarsTypes.User) => {
-    if (_loggedUser && _loggedUser.verified) {
+    if (_loggedUser) {
       setLoading(true)
 
       const params = new URLSearchParams(window.location.search)

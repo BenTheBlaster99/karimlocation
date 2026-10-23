@@ -93,6 +93,31 @@ const createParkingSpot = async (parkingSpot: bookcarsTypes.ParkingSpot): Promis
   return ps._id.toString()
 }
 
+const parseGoogleMapsLink = (link: string) => {
+  const value = link.trim()
+  const pin = value.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/)
+  if (pin) {
+    return { latitude: Number(pin[1]), longitude: Number(pin[2]) }
+  }
+  const camera = value.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/)
+  if (camera) {
+    return { latitude: Number(camera[1]), longitude: Number(camera[2]) }
+  }
+  const query = value.match(/[?&](?:q|ll)=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/)
+  if (query) {
+    return { latitude: Number(query[1]), longitude: Number(query[2]) }
+  }
+  return null
+}
+
+const mapPointFromPayload = (body: bookcarsTypes.UpsertLocationPayload) => {
+  const mapUrl = body.mapUrl?.trim() || ''
+  if (!mapUrl) {
+    return null
+  }
+  return parseGoogleMapsLink(mapUrl) || false
+}
+
 /**
  * Create a Location.
  *
@@ -106,14 +131,18 @@ export const create = async (req: Request, res: Response) => {
   const { body }: { body: bookcarsTypes.UpsertLocationPayload } = req
   const {
     country,
-    longitude,
-    latitude,
     names,
     image,
     parkingSpots: _parkingSpots,
     supplier,
     parentLocation,
   } = body
+
+  const mapPoint = mapPointFromPayload(body)
+  if (mapPoint === false) {
+    res.status(400).send('Invalid Google Maps link')
+    return
+  }
 
   try {
     if (image) {
@@ -144,8 +173,9 @@ export const create = async (req: Request, res: Response) => {
 
     const location = new Location({
       country,
-      longitude,
-      latitude,
+      longitude: mapPoint?.longitude,
+      latitude: mapPoint?.latitude,
+      mapUrl: body.mapUrl?.trim() || undefined,
       values,
       parkingSpots,
       supplier,
@@ -247,16 +277,21 @@ export const update = async (req: Request, res: Response) => {
 
       const {
         country,
-        longitude,
-        latitude,
         names,
         parkingSpots,
         parentLocation,
       }: bookcarsTypes.UpsertLocationPayload = req.body
 
+      const mapPoint = mapPointFromPayload(req.body)
+      if (mapPoint === false) {
+        res.status(400).send('Invalid Google Maps link')
+        return
+      }
+
       location.country = new mongoose.Types.ObjectId(country)
-      location.longitude = longitude
-      location.latitude = latitude
+      location.longitude = mapPoint?.longitude
+      location.latitude = mapPoint?.latitude
+      location.mapUrl = req.body.mapUrl?.trim() || undefined
       location.parentLocation = parentLocation ? new mongoose.Types.ObjectId(parentLocation) : undefined
 
       for (const name of names) {

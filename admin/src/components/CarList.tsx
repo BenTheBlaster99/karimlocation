@@ -202,7 +202,8 @@ const CarList = ({
 
   useEffect(() => {
     if (carSuppliers) {
-      if (carSuppliers.length > 0) {
+      const showAll = helper.admin(user) || helper.admin(carUser)
+      if (carSuppliers.length > 0 || showAll) {
         fetchData(
           page,
           carSuppliers,
@@ -444,7 +445,9 @@ const CarList = ({
                       <div className="name"><h2>{car.name}</h2></div>
                       {!hidePrice && <div className="price">{`${bookcarsHelper.formatPrice(car.dailyPrice, commonStrings.CURRENCY, language as string)}${commonStrings.DAILY}`}</div>}
                     </div>
-                    {car.licensePlate && <div className="license-plate">{car.licensePlate}</div>}
+                    {(car.licensePlate || car.color) && (
+                      <div className="license-plate">{[car.licensePlate, car.color].filter(Boolean).join(' · ')}</div>
+                    )}
                     <ul className="car-info-list">
                       {car.type !== bookcarsTypes.CarType.Unknown && (
                         <li className="car-type">

@@ -22,6 +22,7 @@ import env from '@/config/env.config'
 import { strings as commonStrings } from '@/lang/common'
 import { strings as csStrings } from '@/lang/create-supplier'
 import { strings } from '@/lang/update-user'
+import { strings as cuStrings } from '@/lang/create-user'
 import * as helper from '@/utils/helper'
 import * as UserService from '@/services/UserService'
 import * as SupplierService from '@/services/SupplierService'
@@ -65,6 +66,7 @@ const UpdateUser = () => {
       type: '',
       fullName: '',
       email: '',
+      username: '',
       birthDate: undefined,
       phone: '',
       location: '',
@@ -80,7 +82,6 @@ const UpdateUser = () => {
 
   const type = useWatch({ control, name: 'type' })
   const fullName = useWatch({ control, name: 'fullName' })
-  const email = useWatch({ control, name: 'email' })
   const birthDate = useWatch({ control, name: 'birthDate' })
   const blacklisted = useWatch({ control, name: 'blacklisted' })
   const payLater = useWatch({ control, name: 'payLater' })
@@ -115,22 +116,8 @@ const UpdateUser = () => {
     navigate('/users')
   }
 
-  const handleResendActivationLink = async () => {
-    try {
-      const status = await UserService.resend(email, false, type === bookcarsTypes.RecordType.User ? 'frontend' : 'admin')
-
-      if (status === 200) {
-        helper.info(commonStrings.ACTIVATION_EMAIL_SENT)
-      } else {
-        helper.error()
-      }
-    } catch (err) {
-      helper.error(err)
-    }
-  }
-
   const onLoad = async (_loggedUser?: bookcarsTypes.User) => {
-    if (_loggedUser && _loggedUser.verified) {
+    if (_loggedUser) {
       setLoading(true)
 
       const params = new URLSearchParams(window.location.search)
@@ -157,6 +144,7 @@ const UpdateUser = () => {
               setAvatar(_user.avatar || '')
               setValue('type', _user.type || '')
               setValue('email', _user.email || '')
+              setValue('username', _user.username || '')
               setValue('fullName', _user.fullName || '')
               setValue('phone', _user.phone || '')
               setValue('location', _user.location || '')
@@ -217,9 +205,16 @@ const UpdateUser = () => {
         return
       }
 
+      const username = data.username?.trim().toLowerCase() || ''
+      if (admin && type !== bookcarsTypes.RecordType.User && username && !/^[a-z0-9._-]{3,}$/.test(username)) {
+        setError('username', { message: cuStrings.USERNAME_NOT_VALID })
+        return
+      }
+
       const language = UserService.getLanguage()
       const payload: bookcarsTypes.UpdateUserPayload = {
         _id: user._id as string,
+        username: admin && type !== bookcarsTypes.RecordType.User ? username : undefined,
         phone: data.phone || '',
         location: data.location || '',
         bio: data.bio || '',
@@ -256,15 +251,16 @@ const UpdateUser = () => {
         setFormError(false)
       }
     } catch (err) {
+      if ((err as { response?: { status?: number } })?.response?.status === 409) {
+        setError('username', { message: cuStrings.USERNAME_TAKEN })
+        return
+      }
       helper.error(err)
     }
   }
 
   const supplier = type === bookcarsTypes.RecordType.Supplier
   const driver = type === bookcarsTypes.RecordType.User
-  const activate = admin
-    || (loggedUser && user && loggedUser.type === bookcarsTypes.RecordType.Supplier && user.type === bookcarsTypes.RecordType.User && user.supplier as string === loggedUser._id)
-
   return (
     <Layout onLoad={onLoad} strict>
       {loggedUser && user && visible && (
@@ -347,6 +343,27 @@ const UpdateUser = () => {
                   disabled
                 />
               </FormControl>
+
+              {admin && !driver && (
+                <FormControl fullWidth margin="dense">
+                  <InputLabel shrink>{cuStrings.USERNAME}</InputLabel>
+                  <Input
+                    {...register('username', {
+                      onChange: () => {
+                        if (errors.username) {
+                          clearErrors('username')
+                        }
+                      },
+                    })}
+                    type="text"
+                    autoComplete="off"
+                    error={!!errors.username}
+                  />
+                  <FormHelperText error={!!errors.username}>
+                    {errors.username?.message || ''}
+                  </FormHelperText>
+                </FormControl>
+              )}
 
               <FormControl fullWidth margin="dense">
                 <FormControlLabel
@@ -539,17 +556,6 @@ const UpdateUser = () => {
                   autoComplete="off"
                 />
               </FormControl>
-
-              {activate && (
-                <FormControl fullWidth margin="dense" className="resend-activation-link">
-                  <Button
-                    variant="outlined"
-                    onClick={handleResendActivationLink}
-                  >
-                    {commonStrings.RESEND_ACTIVATION_LINK}
-                  </Button>
-                </FormControl>
-              )}
 
               <div className="buttons">
                 <Button variant="contained" className="btn-primary btn-margin btn-margin-bottom" size="small" onClick={() => navigate(`/change-password?u=${user._id}`)}>

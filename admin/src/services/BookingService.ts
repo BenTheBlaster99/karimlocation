@@ -47,6 +47,31 @@ export const updateStatus = (data: bookcarsTypes.UpdateStatusPayload): Promise<n
     )
     .then((res) => res.status)
 
+export interface RevenueBooking {
+  _id: string
+  car: string
+  licensePlate: string
+  driver: string
+  from: string
+  to: string
+  paidAt: string
+  price: number
+}
+
+export interface RevenueStats {
+  total: number
+  count: number
+  bookings: RevenueBooking[]
+}
+
+export const getRevenue = (): Promise<RevenueStats> =>
+  axiosInstance
+    .get(
+      '/api/booking-revenue',
+      { withCredentials: true }
+    )
+    .then((res) => res.data)
+
 /**
  * Delete Bookings.
  *

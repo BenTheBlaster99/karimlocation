@@ -20,6 +20,7 @@ export type DateBasedPrice = z.infer<typeof dateBasedPriceSchema>
 export const schema = z.object({
   name: z.string(),
   licensePlate: z.string().optional(),
+  color: z.string().optional(),
   supplier: supplierSchema.optional(),
   minimumAge: z.string()
     .refine((val) => !val || /^\d{2}$/.test(val), { message: commonStrings.FIELD_NOT_VALID })
@@ -55,6 +56,7 @@ export const schema = z.object({
   doors: z.string(),
   aircon: z.boolean(),
   mileage: z.string().refine((val) => !val || numberRegex.test(val), { message: commonStrings.FIELD_NOT_VALID }).optional(),
+  odometer: z.string().refine((val) => !val || numberRegex.test(val), { message: commonStrings.FIELD_NOT_VALID }).optional(),
   fuelPolicy: z.string(),
   cancellation: z.string().refine((val) => !val || numberRegex.test(val), { message: commonStrings.FIELD_NOT_VALID }).optional(),
   amendments: z.string().refine((val) => !val || numberRegex.test(val), { message: commonStrings.FIELD_NOT_VALID }).optional(),

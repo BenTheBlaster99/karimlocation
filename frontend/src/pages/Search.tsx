@@ -239,9 +239,7 @@ const Search = () => {
       // }
 
       setLoading(false)
-      if (!user || (user && user.verified)) {
-        setVisible(true)
-      }
+      setVisible(true)
     } catch (err) {
       helper.error(err)
     }
@@ -278,35 +276,6 @@ const Search = () => {
                     onSubmit={handleCarFilterSubmit}
                   />
 
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    startIcon={<FiltersIcon />}
-                    disableElevation
-                    fullWidth
-                    className="btn btn-filters"
-                    onClick={() => setShowFilters((prev) => !prev)}
-                  >
-                    {showFilters ? strings.HILE_FILTERS : strings.SHOW_FILTERS}
-                  </Button>
-
-                  {
-                    showFilters && (
-                      <>
-                        {!env.HIDE_SUPPLIERS && <SupplierFilter className="filter" suppliers={suppliers} onChange={handleSupplierFilterChange} />}
-                        <CarRatingFilter className="filter" onChange={handleRatingFilterChange} />
-                        <CarRangeFilter className="filter" onChange={handleRangeFilterChange} />
-                        <CarMultimediaFilter className="filter" onChange={handleMultimediaFilterChange} />
-                        <CarSeatsFilter className="filter" onChange={handleSeatsFilterChange} />
-                        <CarSpecsFilter className="filter" onChange={handleCarSpecsFilterChange} />
-                        <CarType className="filter" onChange={handleCarTypeFilterChange} />
-                        <GearboxFilter className="filter" onChange={handleGearboxFilterChange} />
-                        <MileageFilter className="filter" onChange={handleMileageFilterChange} />
-                        <FuelPolicyFilter className="filter" onChange={handleFuelPolicyFilterChange} />
-                        <DepositFilter className="filter" onChange={handleDepositFilterChange} />
-                      </>
-                    )
-                  }
                 </>
               )}
             </div>

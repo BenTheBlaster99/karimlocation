@@ -5,7 +5,8 @@ const strings = new LocalizedStrings({
   fr: {
     SIGN_IN_HEADING: 'Connexion',
     SIGN_IN: 'Se connecter',
-    ERROR_IN_SIGN_IN: 'E-mail ou mot de passe incorrect.',
+    USERNAME: 'Nom d’utilisateur',
+    ERROR_IN_SIGN_IN: 'Nom d’utilisateur ou mot de passe incorrect.',
     IS_BLACKLISTED: 'Votre compte est suspendu.',
     RESET_PASSWORD: 'Mot de passe oublié ?',
     STAY_CONNECTED: 'Rester connecté',
@@ -13,7 +14,8 @@ const strings = new LocalizedStrings({
   en: {
     SIGN_IN_HEADING: 'Sign in',
     SIGN_IN: 'Sign in',
-    ERROR_IN_SIGN_IN: 'Incorrect email or password.',
+    USERNAME: 'Username',
+    ERROR_IN_SIGN_IN: 'Incorrect username or password.',
     IS_BLACKLISTED: 'Your account is suspended.',
     RESET_PASSWORD: 'Forgot password?',
     STAY_CONNECTED: 'Stay connected',
@@ -21,7 +23,8 @@ const strings = new LocalizedStrings({
   es: {
     SIGN_IN_HEADING: 'Iniciar sesión',
     SIGN_IN: 'Iniciar sesión',
-    ERROR_IN_SIGN_IN: 'Correo electrónico o contraseña incorrectos.',
+    USERNAME: 'Usuario',
+    ERROR_IN_SIGN_IN: 'Usuario o contraseña incorrectos.',
     IS_BLACKLISTED: 'Tu cuenta está suspendida.',
     RESET_PASSWORD: '¿Olvidaste tu contraseña?',
     STAY_CONNECTED: 'Mantenerse conectado',

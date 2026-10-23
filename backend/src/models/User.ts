@@ -20,6 +20,13 @@ const userSchema = new Schema<env.User>(
       index: true,
       trim: true,
     },
+    username: {
+      type: String,
+      lowercase: true,
+      unique: true,
+      sparse: true,
+      trim: true,
+    },
     phone: {
       type: String,
       validate: {
